@@ -24,6 +24,7 @@ const panelEls = {
   rewardEl:  document.getElementById('agent-reward'),
   epsilonEl: document.getElementById('agent-epsilon'),
   policyEl:  document.getElementById('agent-policy'),
+  historyEl: document.getElementById('agent-history'),
 };
 
 // Controles
@@ -31,9 +32,9 @@ const btnTrigger   = document.getElementById('btn-trigger');
 const btnClear     = document.getElementById('btn-clear');
 const btnReset     = document.getElementById('btn-reset');
 const btnAutoInc   = document.getElementById('btn-auto-incident');
-const btnSpeedUp   = document.getElementById('btn-speed-up');
-const btnSpeedDown = document.getElementById('btn-speed-down');
-const spdLabel     = document.getElementById('speed-label');
+const btnPause     = document.getElementById('btn-pause');
+const btnPauseAgent = document.getElementById('btn-pause-agent');
+const speedSelect  = document.getElementById('speed-select');
 const rewTotalEl   = document.getElementById('reward-total');
 
 // Configuración del canvas de autopista
@@ -78,7 +79,17 @@ const DECISION_INTERVAL = 45;
 let cumulativeReward = 0;
 
 /** Velocidad de simulación (múltiplo de ticks por frame). */
-let simSpeed = 1;
+let simSpeed = parseFloat(speedSelect.value);
+
+/** Simulación pausada. */
+let paused = false;
+
+/** Agente pausado (simulación sigue corriendo sin decisiones RL). */
+let agentPaused = false;
+
+/** Historial de las últimas 10 decisiones. */
+const decisionHistory = [];
+const MAX_HISTORY = 10;
 
 /** Modo automático de incidentes (se generan solos). */
 let autoIncidentMode = false;
@@ -121,6 +132,32 @@ function agentDecision() {
 
   // Acumular
   cumulativeReward += reward;
+
+  // --- Efectos visuales según la acción ---
+  viz.showActionOverlay(action);
+
+  if (action === ACTIONS.CLEAR && sim.incident.vehicle) {
+    viz.triggerClearFlash(
+      sim.incident.vehicle.x + sim.incident.vehicle.width / 2,
+      sim.incident.vehicle.y + sim.incident.vehicle.height / 2
+    );
+  }
+
+  if (action === ACTIONS.DIVERT && divertActive) {
+    viz.setDivertBarrier(true);
+  }
+
+  // --- Historial de decisiones ---
+  decisionHistory.push({
+    tick,
+    stateKey: currentStateKey,
+    action,
+    reward,
+  });
+  if (decisionHistory.length > MAX_HISTORY) {
+    decisionHistory.shift();
+  }
+  viz.renderHistory(decisionHistory);
 
   // Actualizar panel del agente
   const stats         = agent.getStats();
@@ -170,41 +207,44 @@ function executeAction(action) {
  * Loop principal. Se ejecuta vía requestAnimationFrame.
  */
 function mainLoop() {
-  // Ejecutar N ticks de simulación según la velocidad
-  for (let i = 0; i < simSpeed; i++) {
-    sim.update();
-    tick++;
+  if (!paused) {
+    // Ejecutar N ticks de simulación según la velocidad
+    for (let i = 0; i < simSpeed; i++) {
+      sim.update();
+      tick++;
 
-    // Gestionar temporizador de desvío
-    if (divertActive) {
-      divertTimer--;
-      if (divertTimer <= 0) {
-        sim.setSpawnRate(0.5); // restaurar spawn rate normal
-        divertActive = false;
+      // Gestionar temporizador de desvío
+      if (divertActive) {
+        divertTimer--;
+        if (divertTimer <= 0) {
+          sim.setSpawnRate(0.5);
+          divertActive = false;
+          viz.setDivertBarrier(false);
+        }
       }
-    }
 
-    // Generar incidentes automáticos
-    if (autoIncidentMode) {
-      autoIncidentTimer++;
-      if (autoIncidentTimer >= AUTO_INCIDENT_INTERVAL && !sim.incident.active) {
-        autoIncidentTimer = 0;
-        const randomLane = Math.floor(Math.random() * sim.laneCount);
-        sim.triggerIncident(randomLane);
+      // Generar incidentes automáticos
+      if (autoIncidentMode) {
+        autoIncidentTimer++;
+        if (autoIncidentTimer >= AUTO_INCIDENT_INTERVAL && !sim.incident.active) {
+          autoIncidentTimer = 0;
+          const randomLane = Math.floor(Math.random() * sim.laneCount);
+          sim.triggerIncident(randomLane);
+        }
       }
-    }
 
-    // El agente decide cada DECISION_INTERVAL ticks
-    if (tick % DECISION_INTERVAL === 0) {
-      agentDecision();
+      // El agente decide cada DECISION_INTERVAL ticks (si no está pausado)
+      if (!agentPaused && tick % DECISION_INTERVAL === 0) {
+        agentDecision();
+      }
     }
   }
 
-  // Renderizar
-  viz.render(sim);
+  // Renderizar (siempre, incluso en pausa)
+  viz.render(sim, paused);
 
-  // Actualizar gráfico de métricas cada 3 ticks (más ligero)
-  if (tick % 3 === 0) {
+  // Actualizar gráfico de métricas (solo si no está pausado)
+  if (!paused && tick % 3 === 0) {
     viz.pushMetrics(sim.metrics.avgSpeed, sim.metrics.flowPerMinute);
     viz.renderChart();
   }
@@ -234,10 +274,19 @@ btnReset.addEventListener('click', () => {
   cumulativeReward = 0;
   divertActive = false;
   divertTimer = 0;
+  paused = false;
+  agentPaused = false;
+  btnPause.textContent = '⏸ Pausar';
+  btnPause.classList.remove('active');
+  btnPauseAgent.textContent = '🧠 Agente: ON';
+  btnPauseAgent.classList.remove('active');
+  decisionHistory.length = 0;
   sim.init();
   agent.initQTable();
   agent.epsilon = 1.0;
+  viz.setDivertBarrier(false);
   viz.resetChart();
+  viz.renderHistory([]);
   rewTotalEl.textContent = '0';
   viz.updateAgentPanel(
     { density: 'low', speed: 'high', incidentLane: null },
@@ -254,14 +303,20 @@ btnAutoInc.addEventListener('click', () => {
   btnAutoInc.classList.toggle('active', autoIncidentMode);
 });
 
-btnSpeedUp.addEventListener('click', () => {
-  simSpeed = Math.min(20, simSpeed + 1);
-  spdLabel.textContent = `${simSpeed}x`;
+speedSelect.addEventListener('change', () => {
+  simSpeed = parseFloat(speedSelect.value);
 });
 
-btnSpeedDown.addEventListener('click', () => {
-  simSpeed = Math.max(1, simSpeed - 1);
-  spdLabel.textContent = `${simSpeed}x`;
+btnPause.addEventListener('click', () => {
+  paused = !paused;
+  btnPause.textContent = paused ? '▶ Continuar' : '⏸ Pausar';
+  btnPause.classList.toggle('active', paused);
+});
+
+btnPauseAgent.addEventListener('click', () => {
+  agentPaused = !agentPaused;
+  btnPauseAgent.textContent = agentPaused ? '🧠 Agente: OFF' : '🧠 Agente: ON';
+  btnPauseAgent.classList.toggle('active', agentPaused);
 });
 
 // ---------------------------------------------------------------------------

@@ -16,24 +16,24 @@
 // ---------------------------------------------------------------------------
 
 /** Velocidad máxima teórica (px/frame) usada como referencia para discretización. */
-const MAX_SPEED_REF = 5;
+const MAX_SPEED_REF = 3;
 
 /** Distancia de seguridad base entre vehículos del mismo carril (px). */
-const SAFE_DISTANCE_BASE = 45;
+const SAFE_DISTANCE_BASE = 40;
 
 /** Factor de distancia de seguridad proporcional a la velocidad. */
-const SAFE_DISTANCE_SPEED_FACTOR = 8;
+const SAFE_DISTANCE_SPEED_FACTOR = 10;
 
 /** Probabilidad base de spawn cuando spawnRate = 1.0. */
-const SPAWN_BASE_PROBABILITY = 0.12;
+const SPAWN_BASE_PROBABILITY = 0.10;
 
 /** Dimensiones visuales de un vehículo normal (ancho x alto en px). */
 const VEHICLE_WIDTH = 34;
 const VEHICLE_HEIGHT = 16;
 
 /** Velocidad mínima y máxima de spawn para vehículos normales (px/frame). */
-const SPAWN_SPEED_MIN = 1.8;
-const SPAWN_SPEED_MAX = 4.2;
+const SPAWN_SPEED_MIN = 0.7;
+const SPAWN_SPEED_MAX = 2.0;
 
 /** Decaimiento de frenado (reducción de velocidad por frame cuando frena). */
 const BRAKE_DECAY = 0.15;

@@ -104,7 +104,7 @@ body {
   padding: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   overflow-y: auto;
-  max-height: 200px;
+  max-height: 360px;
 }
 
 .agent-panel h2 {
@@ -287,21 +287,6 @@ button.active {
   color: #FFF;
 }
 
-.btn-speed {
-  min-width: 32px;
-  padding: 7px 10px;
-  font-size: 14px;
-}
-
-#speed-label {
-  font-family: monospace;
-  font-size: 13px;
-  font-weight: 700;
-  color: #4FC3F7;
-  min-width: 32px;
-  text-align: center;
-}
-
 #reward-total {
   font-family: monospace;
   font-size: 16px;
@@ -316,6 +301,84 @@ button.active {
   height: 24px;
   background: #333;
   margin: 0 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Historial de decisiones
+   -------------------------------------------------------------------------- */
+
+#agent-history {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+#agent-history table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+#agent-history th {
+  background: #252530;
+  color: #888;
+  text-transform: uppercase;
+  font-size: 9px;
+  padding: 3px 5px;
+  text-align: left;
+  position: sticky;
+  top: 0;
+}
+
+#agent-history td {
+  padding: 2px 5px;
+  border-bottom: 1px solid #252530;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+#agent-history tr.hist-maintain { border-left: 3px solid #4FC3F7; }
+#agent-history tr.hist-divert   { border-left: 3px solid #FF9800; }
+#agent-history tr.hist-clear    { border-left: 3px solid #4CAF50; }
+
+.rew-pos { color: #4CAF50; font-weight: 700; }
+.rew-neg { color: #F44336; font-weight: 700; }
+
+.history-empty {
+  color: #666;
+  font-style: italic;
+  font-size: 11px;
+}
+
+/* --------------------------------------------------------------------------
+   Selector de velocidad
+   -------------------------------------------------------------------------- */
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 7px 30px 7px 10px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #252530;
+  color: #CCC;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+select:hover {
+  background: #333340;
+  border-color: #666;
+}
+
+select:focus {
+  outline: none;
+  border-color: #4FC3F7;
 }
 
 /* --------------------------------------------------------------------------

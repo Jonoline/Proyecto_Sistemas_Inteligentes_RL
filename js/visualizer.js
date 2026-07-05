@@ -1,11 +1,6 @@
 /**
- * Visualizer — Renderizado Canvas 2D de la autopista, gráfico de métricas
- * y panel de estado del agente RL.
- *
- * Responsabilidades:
- *  - Dibujar carriles, vehículos y efectos visuales (luces de emergencia).
- *  - Renderizar un gráfico en tiempo real de velocidad media y flujo.
- *  - Actualizar un panel DOM con el estado discreto, acción y recompensa.
+ * Visualizer — Renderizado Canvas 2D de la autopista, gráfico de métricas,
+ * efectos visuales de acciones y panel de estado del agente RL.
  *
  * @module visualizer
  */
@@ -14,40 +9,32 @@
 // Constantes visuales
 // ---------------------------------------------------------------------------
 
-/** Colores de carrocería según tipo de vehículo. */
 const BODY_COLORS = {
   blue:   '#4A90D9',
   green:  '#4CAF50',
   gray:   '#888888',
   red:    '#E74C3C',
-  hazard: '#FFC107',
 };
 
-/** Color de los vehículos cuando frenan. */
-const BRAKING_COLOR = '#E67E22';
+const BRAKING_COLOR     = '#E67E22';
+const STOPPED_COLOR     = '#C0392B';
+const ASPHALT_COLOR     = '#3D3D3D';
+const LANE_LINE_COLOR   = 'rgba(255, 255, 255, 0.25)';
+const BORDER_COLOR      = '#555';
 
-/** Color de los vehículos detenidos (no incidente). */
-const STOPPED_COLOR = '#C0392B';
+const CHART_WIDTH       = 480;
+const CHART_HEIGHT      = 160;
+const CHART_MAX_POINTS  = 200;
+const CHART_BG          = '#1E1E2E';
+const CHART_GRID        = 'rgba(255,255,255,0.08)';
+const SPEED_COLOR       = '#4FC3F7';
+const FLOW_COLOR        = '#81C784';
 
-/** Color del asfalto. */
-const ASPHALT_COLOR = '#3D3D3D';
+/** Duración del overlay de acción en ticks (≈1.3s a 60fps). */
+const OVERLAY_DURATION = 80;
 
-/** Color de las líneas de carril. */
-const LANE_LINE_COLOR = 'rgba(255, 255, 255, 0.25)';
-
-/** Color del borde del canvas. */
-const BORDER_COLOR = '#555';
-
-/** Dimensiones del gráfico de métricas. */
-const CHART_WIDTH  = 480;
-const CHART_HEIGHT = 160;
-const CHART_MAX_POINTS = 200;
-
-/** Colores del gráfico. */
-const CHART_BG      = '#1E1E2E';
-const CHART_GRID    = 'rgba(255,255,255,0.08)';
-const SPEED_COLOR   = '#4FC3F7';
-const FLOW_COLOR    = '#81C784';
+/** Duración del destello de grúa en ticks. */
+const CLEAR_FLASH_DURATION = 50;
 
 // ---------------------------------------------------------------------------
 // Clase Visualizer
@@ -55,14 +42,15 @@ const FLOW_COLOR    = '#81C784';
 
 export class Visualizer {
   /**
-   * @param {HTMLCanvasElement} highwayCanvas - Canvas donde se dibuja la autopista.
-   * @param {HTMLCanvasElement} chartCanvas   - Canvas donde se dibuja el gráfico.
-   * @param {Object}           panelEls       - Referencias a elementos del panel.
-   * @param {HTMLElement}      panelEls.stateEl     - Muestra el estado discreto.
-   * @param {HTMLElement}      panelEls.actionEl    - Muestra la acción tomada.
-   * @param {HTMLElement}      panelEls.rewardEl    - Muestra la recompensa acumulada.
-   * @param {HTMLElement}      panelEls.epsilonEl   - Muestra el epsilon actual.
-   * @param {HTMLElement}      panelEls.policyEl    - Muestra resumen de política.
+   * @param {HTMLCanvasElement} highwayCanvas
+   * @param {HTMLCanvasElement} chartCanvas
+   * @param {Object} panelEls - Referencias a elementos del panel DOM.
+   * @param {HTMLElement} panelEls.stateEl
+   * @param {HTMLElement} panelEls.actionEl
+   * @param {HTMLElement} panelEls.rewardEl
+   * @param {HTMLElement} panelEls.epsilonEl
+   * @param {HTMLElement} panelEls.policyEl
+   * @param {HTMLElement} panelEls.historyEl
    */
   constructor(highwayCanvas, chartCanvas, panelEls) {
     this.highwayCanvas = highwayCanvas;
@@ -71,33 +59,49 @@ export class Visualizer {
     this.chartCtx      = chartCanvas.getContext('2d');
     this.panel         = panelEls;
 
-    // Historial de métricas para el gráfico
     this.speedHistory  = [];
     this.flowHistory   = [];
+    this._blinkTick    = 0;
 
-    // Temporizador de parpadeo para luces de emergencia
-    this._blinkTick = 0;
+    // Overlay de acción
+    this._overlay = { active: false, action: -1, timer: 0 };
+
+    // Efecto de grúa (CLEAR)
+    this._clearFlash = { active: false, timer: 0, x: 0, y: 0 };
+
+    // Barrera de desvío (DIVERT)
+    this._divertBarrier = false;
+  }
+
+  // -----------------------------------------------------------------------
+  // Efectos visuales — activación desde main.js
+  // -----------------------------------------------------------------------
+
+  /** Muestra el overlay de acción en el centro del canvas. */
+  showActionOverlay(action) {
+    this._overlay = { active: true, action, timer: OVERLAY_DURATION };
+  }
+
+  /** Activa el destello verde de grúa en la posición del incidente. */
+  triggerClearFlash(x, y) {
+    this._clearFlash = { active: true, timer: CLEAR_FLASH_DURATION, x, y };
+  }
+
+  /** Muestra/oculta la barrera naranja de desvío. */
+  setDivertBarrier(active) {
+    this._divertBarrier = active;
   }
 
   // -----------------------------------------------------------------------
   // Renderizado de autopista
   // -----------------------------------------------------------------------
 
-  /**
-   * Dibuja el asfalto de fondo.
-   */
   _drawAsphalt() {
     const ctx = this.highwayCtx;
-    const w   = this.highwayCanvas.width;
-    const h   = this.highwayCanvas.height;
     ctx.fillStyle = ASPHALT_COLOR;
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, 0, this.highwayCanvas.width, this.highwayCanvas.height);
   }
 
-  /**
-   * Dibuja las líneas divisorias de carril (discontinuas).
-   * @param {number} laneCount
-   */
   _drawLaneLines(laneCount) {
     const ctx = this.highwayCtx;
     const w   = this.highwayCanvas.width;
@@ -107,40 +111,26 @@ export class Visualizer {
     ctx.strokeStyle = LANE_LINE_COLOR;
     ctx.lineWidth   = 2;
     ctx.setLineDash([20, 15]);
-
     for (let i = 1; i < laneCount; i++) {
-      const y = i * laneH;
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
+      ctx.moveTo(0, i * laneH);
+      ctx.lineTo(w, i * laneH);
       ctx.stroke();
     }
-
-    // Borde superior e inferior
     ctx.setLineDash([]);
     ctx.strokeStyle = BORDER_COLOR;
     ctx.lineWidth = 3;
     ctx.strokeRect(0, 0, w, h);
   }
 
-  /**
-   * Dibuja todos los vehículos en el canvas.
-   * @param {Array<Object>} vehicles
-   * @param {Object|null}   incident - Estado de incidente actual.
-   */
   _drawVehicles(vehicles, incident) {
     const ctx = this.highwayCtx;
-
-    // Modo parpadeo: cambia cada 30 ticks
     this._blinkTick++;
     const blinkOn = Math.floor(this._blinkTick / 15) % 2 === 0;
 
     for (const v of vehicles) {
       let color;
-
-      // Color según estado del vehículo
       if (v.isIncident || v.emergencyLights) {
-        // Incidente: carrocería normal + overlay amarillo parpadeante
         color = BODY_COLORS[v.type] || BODY_COLORS.blue;
       } else if (v.color === 'braking') {
         color = BRAKING_COLOR;
@@ -150,73 +140,244 @@ export class Visualizer {
         color = BODY_COLORS[v.type] || BODY_COLORS.blue;
       }
 
-      // Dibujar carrocería
       ctx.fillStyle = color;
       ctx.fillRect(v.x, v.y, v.width, v.height);
 
-      // Luces de emergencia (parpadeo amarillo)
       if ((v.isIncident || v.emergencyLights) && blinkOn) {
-        // Parpadeo: fondo amarillo semi-transparente
         ctx.fillStyle = 'rgba(255, 193, 7, 0.6)';
         ctx.fillRect(v.x, v.y, v.width, v.height);
-
-        // Pequeños indicadores de luz en las esquinas
         ctx.fillStyle = '#FFC107';
         ctx.fillRect(v.x + 2, v.y + 2, 6, 4);
         ctx.fillRect(v.x + v.width - 8, v.y + 2, 6, 4);
       }
 
-      // Borde del vehículo
       ctx.strokeStyle = 'rgba(0,0,0,0.3)';
       ctx.lineWidth = 1;
       ctx.strokeRect(v.x, v.y, v.width, v.height);
     }
 
-    // Si hay incidente activo, dibujar icono de peligro sobre el vehículo
     if (incident && incident.active && incident.vehicle && blinkOn) {
       const v = incident.vehicle;
       ctx.fillStyle = '#FF1744';
-      ctx.font = 'bold 14px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('⚠', v.x + v.width / 2, v.y - 4);
+      ctx.fillText('⚠', v.x + v.width / 2, v.y - 6);
     }
   }
+
+  // -----------------------------------------------------------------------
+  // Efecto: barrera de desvío (DIVERT)
+  // -----------------------------------------------------------------------
+
+  _drawDivertBarrier() {
+    if (!this._divertBarrier) return;
+
+    const ctx = this.highwayCtx;
+    const h   = this.highwayCanvas.height;
+
+    // Patrón de barrera a rayas naranjas en el borde izquierdo
+    const barW = 18;
+    const stripeH = 14;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, barW, h);
+    ctx.clip();
+
+    for (let y = 0; y < h; y += stripeH) {
+      ctx.fillStyle = (Math.floor(y / stripeH) % 2 === 0)
+        ? '#FF6F00' : '#3D3D3D';
+      ctx.fillRect(0, y, barW, stripeH);
+    }
+    ctx.restore();
+
+    // Borde
+    ctx.strokeStyle = '#FF8F00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, barW, h);
+
+    // Texto "DESVÍO"
+    ctx.save();
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.translate(barW / 2, h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('REDUCCIÓN ENTRADA', 0, 0);
+    ctx.restore();
+  }
+
+  // -----------------------------------------------------------------------
+  // Efecto: destello de grúa (CLEAR)
+  // -----------------------------------------------------------------------
+
+  _drawClearEffect() {
+    if (!this._clearFlash.active) return;
+
+    const ctx = this.highwayCtx;
+    const w   = this.highwayCanvas.width;
+    const h   = this.highwayCanvas.height;
+
+    // Pulso verde decreciente
+    const progress = this._clearFlash.timer / CLEAR_FLASH_DURATION;
+    const alpha = progress * 0.35;
+    ctx.fillStyle = `rgba(76, 175, 80, ${alpha})`;
+    ctx.fillRect(0, 0, w, h);
+
+    // Círculo expansivo desde el incidente
+    const radius = (1 - progress) * 120 + 20;
+    ctx.beginPath();
+    ctx.arc(this._clearFlash.x, this._clearFlash.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(129, 199, 132, ${progress * 0.6})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Icono de grúa
+    const flashX = this._clearFlash.x;
+    const flashY = this._clearFlash.y - 30;
+    ctx.fillStyle = `rgba(255, 255, 255, ${progress})`;
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('🚛', flashX, flashY);
+  }
+
+  // -----------------------------------------------------------------------
+  // Efecto: overlay de acción (banner central)
+  // -----------------------------------------------------------------------
+
+  _drawActionOverlay() {
+    if (!this._overlay.active) return;
+
+    const ctx = this.highwayCtx;
+    const w   = this.highwayCanvas.width;
+    const h   = this.highwayCanvas.height;
+
+    const progress = this._overlay.timer / OVERLAY_DURATION;
+    const alpha    = Math.min(progress * 2, 1);
+
+    // Fondos según acción
+    const colors = {
+      0: 'rgba(100, 100, 100, ',   // MAINTAIN: gris neutro
+      1: 'rgba(255, 111, 0, ',      // DIVERT: naranja
+      2: 'rgba(76, 175, 80, ',      // CLEAR: verde
+    };
+
+    const labels = [
+      { icon: '⏸️', text: 'MANTENER FLUJO' },
+      { icon: '🔄', text: 'DESVÍO ACTIVADO' },
+      { icon: '🚛', text: 'GRÚA DESPACHADA' },
+    ];
+
+    const l = labels[this._overlay.action] || labels[0];
+    const c = colors[this._overlay.action] || colors[0];
+
+    // Banner semitransparente en la parte superior
+    const bw = 300;
+    const bh = 44;
+    const bx = (w - bw) / 2;
+    const by = 10;
+
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = c + (alpha * 0.85) + ')';
+    this._roundRect(ctx, bx, by, bw, bh, 10);
+    ctx.fill();
+
+    // Borde
+    ctx.strokeStyle = c + (alpha * 0.9) + ')';
+    ctx.lineWidth = 2;
+    this._roundRect(ctx, bx, by, bw, bh, 10);
+    ctx.stroke();
+
+    // Texto
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${l.icon}  ${l.text}`, w / 2, by + bh / 2);
+
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  /** Utilidad: rectángulo con esquinas redondeadas. */
+  _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  /** Tick interno para contar tiempo de overlays. */
+  _tickOverlays() {
+    if (this._overlay.active) {
+      this._overlay.timer--;
+      if (this._overlay.timer <= 0) {
+        this._overlay.active = false;
+      }
+    }
+    if (this._clearFlash.active) {
+      this._clearFlash.timer--;
+      if (this._clearFlash.timer <= 0) {
+        this._clearFlash.active = false;
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Indicador de pausa
+  // -----------------------------------------------------------------------
+
+  /** Dibuja un indicador si la simulación está pausada. */
+  drawPauseOverlay(paused) {
+    if (!paused) return;
+    const ctx = this.highwayCtx;
+    const w   = this.highwayCanvas.width;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillRect(0, 0, w, this.highwayCanvas.height);
+
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 22px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('⏸  PAUSADO', w / 2, this.highwayCanvas.height / 2);
+  }
+
+  // -----------------------------------------------------------------------
+  // Renderizado principal
+  // -----------------------------------------------------------------------
 
   /**
    * Renderiza todo el canvas de la autopista.
    * @param {Object} sim - Instancia de Simulation.
+   * @param {boolean} paused - Si la simulación está pausada.
    */
-  render(sim) {
+  render(sim, paused = false) {
+    this._tickOverlays();
+
     this._drawAsphalt();
     this._drawLaneLines(sim.laneCount);
+    this._drawDivertBarrier();
     this._drawVehicles(sim.vehicles, sim.incident);
+    this._drawClearEffect();
+    this._drawActionOverlay();
+    this.drawPauseOverlay(paused);
   }
 
   // -----------------------------------------------------------------------
   // Gráfico de métricas
   // -----------------------------------------------------------------------
 
-  /**
-   * Añade un punto de datos al historial del gráfico.
-   * @param {number} avgSpeed
-   * @param {number} flowPerMinute
-   */
   pushMetrics(avgSpeed, flowPerMinute) {
     this.speedHistory.push(avgSpeed);
     this.flowHistory.push(flowPerMinute);
-
-    // Mantener ventana deslizante
-    if (this.speedHistory.length > CHART_MAX_POINTS) {
-      this.speedHistory.shift();
-    }
-    if (this.flowHistory.length > CHART_MAX_POINTS) {
-      this.flowHistory.shift();
-    }
+    if (this.speedHistory.length > CHART_MAX_POINTS) this.speedHistory.shift();
+    if (this.flowHistory.length  > CHART_MAX_POINTS) this.flowHistory.shift();
   }
 
-  /**
-   * Dibuja el gráfico de métricas en el canvas correspondiente.
-   */
   renderChart() {
     const ctx  = this.chartCtx;
     const w    = CHART_WIDTH;
@@ -225,11 +386,9 @@ export class Visualizer {
     const pw   = w - pad.left - pad.right;
     const ph   = h - pad.top - pad.bottom;
 
-    // Fondo
     ctx.fillStyle = CHART_BG;
     ctx.fillRect(0, 0, w, h);
 
-    // Líneas de grid horizontal
     ctx.strokeStyle = CHART_GRID;
     ctx.lineWidth   = 1;
     for (let i = 0; i <= 4; i++) {
@@ -240,7 +399,6 @@ export class Visualizer {
       ctx.stroke();
     }
 
-    // Ejes
     ctx.strokeStyle = '#666';
     ctx.lineWidth   = 1.5;
     ctx.beginPath();
@@ -249,18 +407,16 @@ export class Visualizer {
     ctx.lineTo(w - pad.right, h - pad.bottom);
     ctx.stroke();
 
-    // Etiquetas del eje Y
     ctx.fillStyle = '#AAA';
     ctx.font = '10px monospace';
     ctx.textAlign = 'right';
-    const speedMax = 5;
+    const speedMax = 3;
     for (let i = 0; i <= 4; i++) {
       const val = (speedMax / 4) * (4 - i);
       const y   = pad.top + (ph / 4) * i;
       ctx.fillText(val.toFixed(1), pad.left - 6, y + 4);
     }
 
-    // Etiqueta del eje Y
     ctx.save();
     ctx.translate(10, h / 2);
     ctx.rotate(-Math.PI / 2);
@@ -271,12 +427,10 @@ export class Visualizer {
     ctx.fillText(' / flujo', 0, 14);
     ctx.restore();
 
-    // Etiqueta del eje X
     ctx.fillStyle = '#AAA';
     ctx.textAlign = 'center';
     ctx.fillText('tiempo (ticks)', w / 2, h - 4);
 
-    // Datos: velocidad media
     if (this.speedHistory.length > 1) {
       ctx.strokeStyle = SPEED_COLOR;
       ctx.lineWidth   = 1.8;
@@ -290,7 +444,6 @@ export class Visualizer {
       ctx.stroke();
     }
 
-    // Datos: flujo (escalado para que quepa en el mismo gráfico)
     if (this.flowHistory.length > 1) {
       const flowMax = Math.max(10, ...this.flowHistory);
       ctx.strokeStyle = FLOW_COLOR;
@@ -305,7 +458,6 @@ export class Visualizer {
       ctx.stroke();
     }
 
-    // Leyenda
     ctx.font = '11px monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = SPEED_COLOR;
@@ -318,16 +470,6 @@ export class Visualizer {
   // Panel del agente
   // -----------------------------------------------------------------------
 
-  /**
-   * Actualiza el panel de estado del agente RL.
-   *
-   * @param {Object} state  - { density, speed, incidentLane }
-   * @param {number} action - Acción tomada
-   * @param {number} reward - Recompensa obtenida
-   * @param {number} cumulativeReward - Recompensa acumulada total
-   * @param {Object} stats  - { tableSize, epsilon }
-   * @param {Array}  policySummary - Resumen de política
-   */
   updateAgentPanel(state, action, reward, cumulativeReward, stats, policySummary) {
     const actionLabels = ['Mantener flujo', 'Activar desvío', 'Despejar con grúa'];
     const actionIcons = ['⏸️', '🔄', '🚛'];
@@ -379,8 +521,39 @@ export class Visualizer {
   }
 
   /**
-   * Resetea los historiales del gráfico.
+   * Renderiza el historial de decisiones en el elemento DOM.
+   * @param {Array<{tick: number, stateKey: string, action: number, reward: number}>} history
    */
+  renderHistory(history) {
+    if (!this.panel.historyEl) return;
+
+    const actionLabels = ['MANTENER', 'DIVERT', 'CLEAR'];
+    const actionClasses = ['hist-maintain', 'hist-divert', 'hist-clear'];
+
+    if (history.length === 0) {
+      this.panel.historyEl.innerHTML = '<span class="history-empty">Sin decisiones aún</span>';
+      return;
+    }
+
+    const rows = [...history].reverse().map(h => {
+      const cls = actionClasses[h.action] || '';
+      const sign = h.reward >= 0 ? '+' : '';
+      return `<tr class="${cls}">
+        <td>${h.tick}</td>
+        <td>${h.stateKey}</td>
+        <td>${actionLabels[h.action]}</td>
+        <td class="${h.reward >= 0 ? 'rew-pos' : 'rew-neg'}">${sign}${h.reward}</td>
+      </tr>`;
+    }).join('');
+
+    this.panel.historyEl.innerHTML = `
+      <table>
+        <thead><tr><th>Tick</th><th>Estado</th><th>Acción</th><th>Rec.</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
   resetChart() {
     this.speedHistory = [];
     this.flowHistory  = [];

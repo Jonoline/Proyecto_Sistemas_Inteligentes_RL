@@ -53,6 +53,11 @@
         </div>
 
         <div class="agent-section">
+          <span class="label">Últimas decisiones</span>
+          <div id="agent-history">—</div>
+        </div>
+
+        <div class="agent-section">
           <span class="label">Política aprendida (Q-Table)</span>
           <div id="agent-policy">—</div>
         </div>
@@ -90,9 +95,13 @@
       <!-- Grupo: velocidad -->
       <div class="control-group">
         <label>Velocidad</label>
-        <button id="btn-speed-down" class="btn-speed" title="Reducir velocidad">−</button>
-        <span id="speed-label">1x</span>
-        <button id="btn-speed-up" class="btn-speed" title="Aumentar velocidad">+</button>
+        <select id="speed-select">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="5">5x</option>
+          <option value="10">10x</option>
+          <option value="20">20x</option>
+        </select>
       </div>
 
       <span class="divider"></span>
@@ -101,6 +110,18 @@
       <div class="control-group">
         <label>Recompensa total</label>
         <span id="reward-total">0</span>
+      </div>
+
+      <span class="divider"></span>
+
+      <!-- Pausa -->
+      <div class="control-group">
+        <button id="btn-pause" title="Pausar / Continuar simulación">
+          ⏸ Pausar
+        </button>
+        <button id="btn-pause-agent" title="Pausar solo el agente RL (simulación sigue)">
+          🧠 Agente: ON
+        </button>
       </div>
 
       <span class="divider"></span>
