@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Tráfico Inteligente — Q-Learning</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ================================================================ -->
+    <!-- Panel de autopista (Canvas)                                       -->
+    <!-- ================================================================ -->
+    <section class="highway-panel">
+      <h2>Autopista — Simulación en Tiempo Real</h2>
+      <canvas id="highway-canvas"></canvas>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- Fila media: gráfico de métricas + consola del agente               -->
+    <!-- ================================================================ -->
+    <div class="middle-row">
+
+      <!-- Gráfico de métricas -->
+      <section class="chart-panel">
+        <h2>Métricas de Tráfico</h2>
+        <canvas id="chart-canvas"></canvas>
+      </section>
+
+      <!-- Consola de decisiones del agente -->
+      <section class="agent-panel">
+        <h2>Centro de Control — Agente RL</h2>
+
+        <div class="agent-section">
+          <span class="label">Estado observado</span>
+          <div id="agent-state">—</div>
+        </div>
+
+        <div class="agent-section">
+          <span class="label">Acción tomada</span>
+          <div id="agent-action">—</div>
+        </div>
+
+        <div class="agent-section">
+          <span class="label">Recompensa</span>
+          <div id="agent-reward">—</div>
+        </div>
+
+        <div class="agent-section">
+          <span class="label">Exploración / Explotación</span>
+          <div id="agent-epsilon">—</div>
+        </div>
+
+        <div class="agent-section">
+          <span class="label">Política aprendida (Q-Table)</span>
+          <div id="agent-policy">—</div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Barra de controles                                                -->
+    <!-- ================================================================ -->
+    <section class="controls-bar">
+
+      <!-- Grupo: incidentes -->
+      <div class="control-group">
+        <label>Incidentes</label>
+        <button id="btn-trigger" class="btn-danger" title="Generar un incidente aleatorio">
+          Choque
+        </button>
+        <button id="btn-clear" class="btn-success" title="Despejar incidente manualmente">
+          Grúa
+        </button>
+      </div>
+
+      <span class="divider"></span>
+
+      <!-- Grupo: modo automático -->
+      <div class="control-group">
+        <button id="btn-auto-incident" title="Activar/desactivar generación automática de incidentes">
+          Auto-Incidentes: OFF
+        </button>
+      </div>
+
+      <span class="divider"></span>
+
+      <!-- Grupo: velocidad -->
+      <div class="control-group">
+        <label>Velocidad</label>
+        <button id="btn-speed-down" class="btn-speed" title="Reducir velocidad">−</button>
+        <span id="speed-label">1x</span>
+        <button id="btn-speed-up" class="btn-speed" title="Aumentar velocidad">+</button>
+      </div>
+
+      <span class="divider"></span>
+
+      <!-- Recompensa acumulada -->
+      <div class="control-group">
+        <label>Recompensa total</label>
+        <span id="reward-total">0</span>
+      </div>
+
+      <span class="divider"></span>
+
+      <!-- Reinicio -->
+      <div class="control-group">
+        <button id="btn-reset" title="Reiniciar simulación y Q-Table">
+          Reiniciar Todo
+        </button>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Módulo principal -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

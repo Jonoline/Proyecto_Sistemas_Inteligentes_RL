@@ -1,0 +1,329 @@
+/* ==========================================================================
+   Traffic Simulator — Estilos principales
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Reset y base
+   -------------------------------------------------------------------------- */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  background: #12121A;
+  color: #E0E0E0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   Contenedor principal (grid)
+   -------------------------------------------------------------------------- */
+
+.app-container {
+  width: 940px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   Panel de autopista
+   -------------------------------------------------------------------------- */
+
+.highway-panel {
+  background: #1A1A24;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.highway-panel h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+#highway-canvas {
+  display: block;
+  border-radius: 6px;
+  width: 100%;
+  height: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Fila media: gráfico + panel del agente
+   -------------------------------------------------------------------------- */
+
+.middle-row {
+  display: flex;
+  gap: 14px;
+}
+
+/* Panel del gráfico (izquierda) */
+.chart-panel {
+  flex: 1;
+  background: #1A1A24;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.chart-panel h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+#chart-canvas {
+  display: block;
+  border-radius: 4px;
+}
+
+/* Panel del agente (derecha) */
+.agent-panel {
+  flex: 1;
+  background: #1A1A24;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.agent-panel h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+/* Secciones del panel */
+.agent-section {
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.agent-section .label {
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 10px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* Badges de estado */
+.state-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+  margin-bottom: 2px;
+}
+
+.density-low     { background: #1B5E20; color: #A5D6A7; }
+.density-medium  { background: #E65100; color: #FFCC80; }
+.density-high    { background: #B71C1C; color: #EF9A9A; }
+
+.speed-high      { background: #0D47A1; color: #90CAF9; }
+.speed-medium    { background: #4A148C; color: #CE93D8; }
+.speed-low       { background: #E65100; color: #FFCC80; }
+.speed-zero      { background: #B71C1C; color: #FFCDD2; }
+
+.incident-active { background: #FF6F00; color: #FFF; animation: pulse-alert 1s infinite; }
+
+@keyframes pulse-alert {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+/* Recompensa */
+.reward {
+  font-weight: 700;
+  font-size: 14px;
+}
+.reward.positive { color: #4CAF50; }
+.reward.negative { color: #F44336; }
+.cumulative {
+  color: #888;
+  font-size: 11px;
+}
+
+/* Tabla de política */
+#agent-policy {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+#agent-policy table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+#agent-policy th {
+  background: #252530;
+  color: #888;
+  text-transform: uppercase;
+  font-size: 9px;
+  padding: 3px 4px;
+  text-align: left;
+  position: sticky;
+  top: 0;
+}
+
+#agent-policy td {
+  padding: 2px 4px;
+  border-bottom: 1px solid #252530;
+}
+
+.policy-state  { color: #CCC; font-family: monospace; }
+.policy-q      { color: #888; font-family: monospace; font-size: 9px; }
+
+.policy-action.action_maintain { color: #4FC3F7; }
+.policy-action.action_divert   { color: #FFB74D; }
+.policy-action.action_clear    { color: #81C784; }
+
+/* --------------------------------------------------------------------------
+   Barra de controles
+   -------------------------------------------------------------------------- */
+
+.controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  background: #1A1A24;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.control-group label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* Botones */
+button {
+  padding: 7px 14px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #252530;
+  color: #CCC;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: #333340;
+  border-color: #666;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+button.active {
+  background: #FF6F00;
+  border-color: #FF8F00;
+  color: #FFF;
+}
+
+.btn-danger {
+  background: #B71C1C;
+  border-color: #C62828;
+  color: #FFF;
+}
+.btn-danger:hover {
+  background: #D32F2F;
+}
+
+.btn-success {
+  background: #1B5E20;
+  border-color: #2E7D32;
+  color: #A5D6A7;
+}
+.btn-success:hover {
+  background: #2E7D32;
+  color: #FFF;
+}
+
+.btn-speed {
+  min-width: 32px;
+  padding: 7px 10px;
+  font-size: 14px;
+}
+
+#speed-label {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4FC3F7;
+  min-width: 32px;
+  text-align: center;
+}
+
+#reward-total {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFD54F;
+  min-width: 48px;
+  text-align: center;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: #333;
+  margin: 0 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 980px) {
+  .app-container { width: 100%; }
+  #highway-canvas { height: auto; }
+  .middle-row { flex-direction: column; }
+}
