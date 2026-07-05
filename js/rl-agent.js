@@ -237,9 +237,10 @@ export class RLAgent {
    * Priority-ordered rules:
    *   1. +20 — Incident correctly cleared  (incidentLane != null  && action = CLEAR)
    *   2. −30 — Incident ignored            (incidentLane != null  && action = MAINTAIN)
-   *   3. −10 — False positive intervention (incidentLane == null  && action ∈ {DIVERT, CLEAR})
-   *   4. +10 — Normal traffic, no incident (incidentLane == null  && speed ≠ "zero")
-   *   5.   0 — All other cases (e.g. incident + DIVERT, or stalled flow with no lane flagged)
+   *   3.  +5 — Incident mitigated via divert (incidentLane != null  && action = DIVERT)
+   *   4. −10 — False positive intervention (incidentLane == null  && action ∈ {DIVERT, CLEAR})
+   *   5. +10 — Normal traffic, no incident (incidentLane == null  && speed ≠ "zero")
+   *   6.   0 — All other cases
    *
    * @param {{density: string, speed: string, incidentLane: (number|null)}} state
    * @param {number} action - Action taken (0, 1, or 2)
@@ -258,7 +259,12 @@ export class RLAgent {
       return -30;
     }
 
-    // Rule 3 — false positive: no incident but agent intervened
+    // Rule 3 — incident mitigated via divert (better than nothing)
+    if (hasIncident && action === ACTIONS.DIVERT) {
+      return 5;
+    }
+
+    // Rule 4 — false positive: no incident but agent intervened
     if (!hasIncident && (action === ACTIONS.DIVERT || action === ACTIONS.CLEAR)) {
       return -10;
     }

@@ -70,7 +70,7 @@ export class Visualizer {
     this._clearFlash = { active: false, timer: 0, x: 0, y: 0 };
 
     // Barrera de desvío (DIVERT)
-    this._divertBarrier = false;
+    this._divertBarrier = { active: false, lane: 0 };
   }
 
   // -----------------------------------------------------------------------
@@ -87,9 +87,9 @@ export class Visualizer {
     this._clearFlash = { active: true, timer: CLEAR_FLASH_DURATION, x, y };
   }
 
-  /** Muestra/oculta la barrera naranja de desvío. */
-  setDivertBarrier(active) {
-    this._divertBarrier = active;
+  /** Muestra/oculta la barrera naranja de desvío en un carril. */
+  setDivertBarrier(active, lane = 0) {
+    this._divertBarrier = { active, lane };
   }
 
   // -----------------------------------------------------------------------
@@ -166,43 +166,96 @@ export class Visualizer {
   }
 
   // -----------------------------------------------------------------------
-  // Efecto: barrera de desvío (DIVERT)
+  // Efecto: borde rojo pulsante ante incidente
   // -----------------------------------------------------------------------
 
-  _drawDivertBarrier() {
-    if (!this._divertBarrier) return;
+  _drawAlertBorder(incident, laneCount) {
+    if (!incident || !incident.active) return;
 
     const ctx = this.highwayCtx;
+    const w   = this.highwayCanvas.width;
     const h   = this.highwayCanvas.height;
 
-    // Patrón de barrera a rayas naranjas en el borde izquierdo
+    // Pulso: intensidad varia con el parpadeo
+    const blinkPhase = Math.sin(this._blinkTick * 0.08);
+    const alpha = 0.6 + blinkPhase * 0.4;
+    const thickness = 3 + (1 - Math.abs(blinkPhase)) * 2;
+
+    ctx.strokeStyle = `rgba(244, 67, 54, ${alpha})`;
+    ctx.lineWidth = thickness;
+    ctx.setLineDash([]);
+    ctx.strokeRect(1, 1, w - 2, h - 2);
+
+    // Segunda linea fina exterior
+    ctx.strokeStyle = `rgba(244, 67, 54, ${alpha * 0.3})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(5, 5, w - 10, h - 10);
+  }
+
+  // -----------------------------------------------------------------------
+  // Efecto: zona de peligro tras el incidente
+  // -----------------------------------------------------------------------
+
+  _drawDangerZone(incident, laneCount) {
+    if (!incident || !incident.active || !incident.vehicle) return;
+
+    const ctx   = this.highwayCtx;
+    const h     = this.highwayCanvas.height;
+    const laneH = h / laneCount;
+    const v     = incident.vehicle;
+    const laneY = v.y;
+    const laneY2 = laneY + v.height;
+
+    // Gradiente rojo desde el auto hacia atras
+    const gradientEnd = Math.max(0, v.x - 200);
+
+    const grad = ctx.createLinearGradient(v.x, 0, gradientEnd, 0);
+    grad.addColorStop(0, 'rgba(244, 67, 54, 0.25)');
+    grad.addColorStop(0.4, 'rgba(244, 67, 54, 0.12)');
+    grad.addColorStop(1, 'rgba(244, 67, 54, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(gradientEnd, laneY, v.x - gradientEnd, v.height * 2);
+  }
+
+  _drawDivertBarrier(laneCount) {
+    if (!this._divertBarrier.active) return;
+
+    const ctx     = this.highwayCtx;
+    const h       = this.highwayCanvas.height;
+    const laneH   = h / laneCount;
+    const laneIdx = this._divertBarrier.lane;
+    const laneY   = laneIdx * laneH;
+
     const barW = 18;
     const stripeH = 14;
+
+    // Barrera de rayas naranjas solo en el carril bloqueado
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 0, barW, h);
+    ctx.rect(0, laneY, barW, laneH);
     ctx.clip();
 
-    for (let y = 0; y < h; y += stripeH) {
+    for (let y = laneY; y < laneY + laneH; y += stripeH) {
       ctx.fillStyle = (Math.floor(y / stripeH) % 2 === 0)
         ? '#FF6F00' : '#3D3D3D';
       ctx.fillRect(0, y, barW, stripeH);
     }
     ctx.restore();
 
-    // Borde
+    // Borde de la barrera
     ctx.strokeStyle = '#FF8F00';
     ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, barW, h);
+    ctx.strokeRect(0, laneY, barW, laneH);
 
-    // Texto "DESVÍO"
+    // Texto vertical en la barrera
     ctx.save();
     ctx.fillStyle = '#FFF';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold 8px monospace';
     ctx.textAlign = 'center';
-    ctx.translate(barW / 2, h / 2);
+    ctx.translate(barW / 2, laneY + laneH / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('REDUCCIÓN ENTRADA', 0, 0);
+    ctx.fillText('DESVIO', 0, 0);
     ctx.restore();
   }
 
@@ -360,8 +413,10 @@ export class Visualizer {
 
     this._drawAsphalt();
     this._drawLaneLines(sim.laneCount);
-    this._drawDivertBarrier();
+    this._drawDangerZone(sim.incident, sim.laneCount);
+    this._drawDivertBarrier(sim.laneCount);
     this._drawVehicles(sim.vehicles, sim.incident);
+    this._drawAlertBorder(sim.incident, sim.laneCount);
     this._drawClearEffect();
     this._drawActionOverlay();
     this.drawPauseOverlay(paused);
@@ -380,8 +435,8 @@ export class Visualizer {
 
   renderChart() {
     const ctx  = this.chartCtx;
-    const w    = CHART_WIDTH;
-    const h    = CHART_HEIGHT;
+    const w    = this.chartCanvas.width;
+    const h    = this.chartCanvas.height;
     const pad  = { top: 18, right: 16, bottom: 22, left: 36 };
     const pw   = w - pad.left - pad.right;
     const ph   = h - pad.top - pad.bottom;
@@ -504,19 +559,9 @@ export class Visualizer {
     }
 
     if (this.panel.policyEl && policySummary.length > 0) {
-      const rows = policySummary.slice(0, 8).map(p =>
-        `<tr>
-          <td class="policy-state">${p.state}</td>
-          <td class="policy-action action-${p.bestAction.toLowerCase()}">${p.bestAction}</td>
-          <td class="policy-q">[${p.qValues.map(v => v.toFixed(0)).join(', ')}]</td>
-        </tr>`
-      ).join('');
-      this.panel.policyEl.innerHTML = `
-        <table>
-          <thead><tr><th>Estado</th><th>Mejor acción</th><th>Q-values</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
+      this.panel.policyEl.innerHTML = this._buildHeatmap(policySummary);
+    } else if (this.panel.policyEl && policySummary.length === 0) {
+      this.panel.policyEl.innerHTML = '<span class="history-empty">Sin datos de entrenamiento</span>';
     }
   }
 
@@ -552,6 +597,108 @@ export class Visualizer {
         <tbody>${rows}</tbody>
       </table>
     `;
+  }
+
+  // -----------------------------------------------------------------------
+  // Mapa de calor de la Q-Table
+  // -----------------------------------------------------------------------
+
+  /**
+   * Construye un mapa de calor HTML a partir de la politica aprendida.
+   * @param {Array<{state: string, bestAction: string, qValues: number[]}>} policy
+   * @returns {string} HTML
+   */
+  _buildHeatmap(policy) {
+    const densityOrder = ['low', 'medium', 'high'];
+    const speedOrder   = ['high', 'medium', 'low', 'zero'];
+    const densityLabels = { low: 'Baja', medium: 'Media', high: 'Alta' };
+    const speedLabels   = { high: 'Alta', medium: 'Media', low: 'Baja', zero: 'Cero' };
+    const actionIcons = { MAINTAIN: '', DIVERT: 'R', CLEAR: 'G' };
+    const actionNames = { MAINTAIN: 'Mantener', DIVERT: 'Desviar', CLEAR: 'Grua' };
+
+    // Indexar politica por stateKey para acceso rapido
+    const policyMap = {};
+    for (const p of policy) {
+      policyMap[p.state] = p;
+    }
+
+    // Determinar rango de Q-values para normalizar colores
+    let maxAbsQ = 1;
+    for (const p of policy) {
+      for (const q of p.qValues) {
+        maxAbsQ = Math.max(maxAbsQ, Math.abs(q));
+      }
+    }
+
+    /** Retorna color de fondo basado en el Q-value. */
+    function cellColor(maxQ) {
+      if (maxQ === 0) return '#252530';
+      const ratio = Math.max(-1, Math.min(1, maxQ / maxAbsQ));
+      if (ratio > 0.3)  return `rgba(76, 175, 80, ${0.2 + ratio * 0.5})`;
+      if (ratio > 0)    return `rgba(255, 193, 7, ${0.2 + ratio * 0.4})`;
+      return `rgba(244, 67, 54, ${0.15 + Math.abs(ratio) * 0.4})`;
+    }
+
+    // Construir grid: filas = densidad, columnas = velocidad (sin incidente)
+    let html = '<div class="heatmap-grid">';
+
+    // Cabecera
+    html += '<div class="heatmap-cell heatmap-header">Densidad \\ Velocidad</div>';
+    for (const sp of speedOrder) {
+      html += `<div class="heatmap-cell heatmap-header heatmap-col-label">${speedLabels[sp]}</div>`;
+    }
+
+    // Filas de datos
+    for (const dn of densityOrder) {
+      html += `<div class="heatmap-cell heatmap-row-label">${densityLabels[dn]}</div>`;
+      for (const sp of speedOrder) {
+        const key = `${dn}_${sp}_null`;
+        const entry = policyMap[key];
+        if (entry) {
+          const maxQ = Math.max(...entry.qValues);
+          const bestIdx = entry.qValues.indexOf(maxQ);
+          const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
+          const bestInitial = ['M', 'D', 'G'][bestIdx];
+          const bg = cellColor(maxQ);
+          html += `<div class="heatmap-cell" style="background:${bg}" title="${bestLabel}: ${maxQ.toFixed(0)} (Q=[${entry.qValues.map(v=>v.toFixed(0)).join(',')}])">
+            <span class="heatmap-action">${bestInitial}</span>
+            <span class="heatmap-q">${maxQ.toFixed(0)}</span>
+          </div>`;
+        } else {
+          html += `<div class="heatmap-cell heatmap-empty" title="No visitado">-</div>`;
+        }
+      }
+    }
+
+    html += '</div>';
+
+    // Leyenda
+    html += '<div class="heatmap-legend">';
+    html += '<span class="legend-item"><span class="legend-swatch" style="background:#4CAF50"></span> Q+ alto</span>';
+    html += '<span class="legend-item"><span class="legend-swatch" style="background:#FFC107"></span> Q neutro</span>';
+    html += '<span class="legend-item"><span class="legend-swatch" style="background:#F44336"></span> Q- bajo</span>';
+    html += '<span class="legend-item"><span class="legend-swatch" style="background:#252530;border:1px solid #444"></span> No visitado</span>';
+    html += '</div>';
+
+    // Seccion de incidentes (solo los que se han visitado)
+    const incidentEntries = policy.filter(p => !p.state.endsWith('null'));
+    if (incidentEntries.length > 0) {
+      html += '<div class="heatmap-incidents">';
+      html += '<span class="label">Con incidente en carril:</span>';
+      for (const p of incidentEntries.slice(0, 4)) {
+        const parts = p.state.split('_');
+        const lane = parts[2];
+        const maxQ = Math.max(...p.qValues);
+        const bestIdx = p.qValues.indexOf(maxQ);
+        const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
+        html += `<span class="incident-chip" style="background:${cellColor(maxQ)}">
+          Carril ${lane}: ${bestLabel} (${maxQ.toFixed(0)})
+        </span>`;
+      }
+      html += '</div>';
+    }
+
+    return html;
   }
 
   resetChart() {

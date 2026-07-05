@@ -79,6 +79,8 @@ body {
   border-radius: 10px;
   padding: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-panel h2 {
@@ -93,6 +95,8 @@ body {
 #chart-canvas {
   display: block;
   border-radius: 4px;
+  width: 100%;
+  flex: 1;
 }
 
 /* Panel del agente (derecha) */
@@ -104,7 +108,7 @@ body {
   padding: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   overflow-y: auto;
-  max-height: 360px;
+  max-height: 440px;
 }
 
 .agent-panel h2 {
@@ -174,40 +178,24 @@ body {
   font-size: 11px;
 }
 
-/* Tabla de política */
+/* Indicador de cooldown de grúa */
+.cooldown-ready {
+  color: #4CAF50;
+  font-weight: 700;
+  font-family: monospace;
+}
+.cooldown-active {
+  color: #FF9800;
+  font-weight: 700;
+  font-family: monospace;
+  animation: pulse-alert 0.8s infinite;
+}
+
+/* Tabla de política — reemplazada por mapa de calor */
 #agent-policy {
-  max-height: 120px;
-  overflow-y: auto;
+  overflow: visible;
+  max-height: none;
 }
-
-#agent-policy table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10px;
-}
-
-#agent-policy th {
-  background: #252530;
-  color: #888;
-  text-transform: uppercase;
-  font-size: 9px;
-  padding: 3px 4px;
-  text-align: left;
-  position: sticky;
-  top: 0;
-}
-
-#agent-policy td {
-  padding: 2px 4px;
-  border-bottom: 1px solid #252530;
-}
-
-.policy-state  { color: #CCC; font-family: monospace; }
-.policy-q      { color: #888; font-family: monospace; font-size: 9px; }
-
-.policy-action.action_maintain { color: #4FC3F7; }
-.policy-action.action_divert   { color: #FFB74D; }
-.policy-action.action_clear    { color: #81C784; }
 
 /* --------------------------------------------------------------------------
    Barra de controles
@@ -347,6 +335,121 @@ button.active {
   color: #666;
   font-style: italic;
   font-size: 11px;
+}
+
+/* --------------------------------------------------------------------------
+   Mapa de calor Q-Table
+   -------------------------------------------------------------------------- */
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: 72px repeat(4, 1fr);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.heatmap-cell {
+  padding: 4px 3px;
+  text-align: center;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: monospace;
+  min-height: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  transition: background 0.3s;
+}
+
+.heatmap-header {
+  background: #252530;
+  color: #888;
+  font-weight: 700;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.heatmap-row-label {
+  background: #252530;
+  color: #AAA;
+  font-weight: 600;
+  font-size: 10px;
+  justify-content: center;
+}
+
+.heatmap-col-label {
+  color: #999;
+}
+
+.heatmap-action {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFF;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.heatmap-q {
+  font-size: 9px;
+  color: rgba(255,255,255,0.7);
+}
+
+.heatmap-empty {
+  background: #252530;
+  color: #555;
+}
+
+.heatmap-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 9px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.heatmap-incidents {
+  font-size: 10px;
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.heatmap-incidents .label {
+  color: #888;
+  font-size: 9px;
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+
+.incident-chip {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 9px;
+  color: #FFF;
+  white-space: nowrap;
+}
+
+/* Ocultar estilos viejos de tabla de politica */
+#agent-policy {
+  overflow: visible;
 }
 
 /* --------------------------------------------------------------------------

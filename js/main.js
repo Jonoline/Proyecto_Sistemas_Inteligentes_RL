@@ -36,12 +36,20 @@ const btnPause     = document.getElementById('btn-pause');
 const btnPauseAgent = document.getElementById('btn-pause-agent');
 const speedSelect  = document.getElementById('speed-select');
 const rewTotalEl   = document.getElementById('reward-total');
+const cooldownEl   = document.getElementById('agent-cooldown');
 
 // Configuración del canvas de autopista
 highwayCanvas.width  = 900;
 highwayCanvas.height = 280;
-chartCanvas.width    = 480;
-chartCanvas.height   = 160;
+
+// El canvas del grafico se ajusta a su contenedor
+function resizeChartCanvas() {
+  const parent = chartCanvas.parentElement;
+  chartCanvas.width  = parent.clientWidth - 24;
+  chartCanvas.height = parent.clientHeight - 24;
+}
+window.addEventListener('resize', resizeChartCanvas);
+requestAnimationFrame(() => requestAnimationFrame(resizeChartCanvas));
 
 // ---------------------------------------------------------------------------
 // Instancias
@@ -104,6 +112,12 @@ let divertTimer  = 0;
 const DIVERT_DURATION = 120; // ticks que dura el desvío
 const DIVERT_SPAWN_RATE = 0.15; // spawn rate durante desvío
 
+/** Tiempo de enfriamiento de la grúa (ticks). */
+const CLEAR_COOLDOWN = 180;
+
+/** Contador de enfriamiento de la grúa (0 = disponible). */
+let clearCooldown = 0;
+
 // ---------------------------------------------------------------------------
 // Ciclo de decisión del agente
 // ---------------------------------------------------------------------------
@@ -115,17 +129,24 @@ function agentDecision() {
   const currentStateKey = sim.getStateKey();
   const currentState    = sim.getState();
 
-  // Seleccionar acción
-  const action = agent.selectAction(currentStateKey);
+  // Seleccionar accion
+  let action = agent.selectAction(currentStateKey);
 
-  // Ejecutar acción en la simulación
-  executeAction(action);
+  // Si el agente pide CLEAR pero esta en enfriamiento, se anula
+  let reward;
+  if (action === ACTIONS.CLEAR && clearCooldown > 0) {
+    // Grúa no disponible: accion anulada, penalizacion leve
+    action = ACTIONS.MAINTAIN;
+    executeAction(action);
+    reward = -5;
+  } else {
+    // Ejecutar accion normalmente
+    executeAction(action);
+    reward = agent.calculateReward(currentState, action);
+  }
 
-  // Observar nuevo estado tras la acción
+  // Observar nuevo estado tras la accion
   const nextStateKey = sim.getStateKey();
-
-  // Calcular recompensa
-  const reward = agent.calculateReward(currentState, action);
 
   // Actualizar Q-Table
   agent.update(currentStateKey, action, reward, nextStateKey);
@@ -133,7 +154,7 @@ function agentDecision() {
   // Acumular
   cumulativeReward += reward;
 
-  // --- Efectos visuales según la acción ---
+  // --- Efectos visuales segun la accion ---
   viz.showActionOverlay(action);
 
   if (action === ACTIONS.CLEAR && sim.incident.vehicle) {
@@ -144,7 +165,7 @@ function agentDecision() {
   }
 
   if (action === ACTIONS.DIVERT && divertActive) {
-    viz.setDivertBarrier(true);
+    viz.setDivertBarrier(true, sim.incident.lane);
   }
 
   // --- Historial de decisiones ---
@@ -165,7 +186,7 @@ function agentDecision() {
   viz.updateAgentPanel(currentState, action, reward, cumulativeReward, stats, policySummary);
   rewTotalEl.textContent = cumulativeReward.toFixed(0);
 
-  // Decaer epsilon cada cierto número de decisiones
+  // Decaer epsilon cada cierto numero de decisiones
   if (tick % (DECISION_INTERVAL * 3) === 0) {
     agent.decayEpsilon();
   }
@@ -191,9 +212,10 @@ function executeAction(action) {
       break;
 
     case ACTIONS.CLEAR:
-      // Despejar incidente con grúa
+      // Despejar incidente con grúa (solo si no está en enfriamiento)
       if (sim.incident.active) {
         sim.clearIncident();
+        clearCooldown = CLEAR_COOLDOWN;
       }
       break;
   }
@@ -212,6 +234,11 @@ function mainLoop() {
     for (let i = 0; i < simSpeed; i++) {
       sim.update();
       tick++;
+
+      // Enfriamiento de la grúa
+      if (clearCooldown > 0) {
+        clearCooldown--;
+      }
 
       // Gestionar temporizador de desvío
       if (divertActive) {
@@ -249,6 +276,14 @@ function mainLoop() {
     viz.renderChart();
   }
 
+  // Actualizar indicador de cooldown
+  if (clearCooldown > 0) {
+    const secs = (clearCooldown / 60).toFixed(1);
+    cooldownEl.innerHTML = `<span class="cooldown-active">Enfriamiento: ${secs}s</span>`;
+  } else {
+    cooldownEl.innerHTML = '<span class="cooldown-ready">Lista</span>';
+  }
+
   requestAnimationFrame(mainLoop);
 }
 
@@ -274,6 +309,7 @@ btnReset.addEventListener('click', () => {
   cumulativeReward = 0;
   divertActive = false;
   divertTimer = 0;
+  clearCooldown = 0;
   paused = false;
   agentPaused = false;
   btnPause.textContent = '⏸ Pausar';
