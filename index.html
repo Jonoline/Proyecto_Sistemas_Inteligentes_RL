@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulador de Tráfico Inteligente — Q-Learning</title>
+  <title>Simulador de Trafico Inteligente — Aprendizaje por Refuerzo</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -30,7 +30,7 @@
 
       <!-- Consola de decisiones del agente -->
       <section class="agent-panel">
-        <h2>Centro de Control — Agente RL</h2>
+        <h2>Centro de Control — Agente</h2>
 
         <div class="agent-section">
           <span class="label">Estado observado</span>
@@ -68,7 +68,7 @@
         </div>
 
         <div class="agent-section">
-          <span class="label">Política aprendida (Q-Table)</span>
+          <span class="label">Politica aprendida (Tabla Q)</span>
           <div id="agent-policy">—</div>
         </div>
       </section>
@@ -96,7 +96,7 @@
       <!-- Grupo: modo automático -->
       <div class="control-group">
         <button id="btn-auto-incident" title="Activar/desactivar generación automática de incidentes">
-          Auto-Incidentes: OFF
+          Auto-Incidentes: DESACTIVADO
         </button>
       </div>
 
@@ -129,8 +129,8 @@
         <button id="btn-pause" title="Pausar / Continuar simulación">
           ⏸ Pausar
         </button>
-        <button id="btn-pause-agent" title="Pausar solo el agente RL (simulación sigue)">
-          🧠 Agente: ON
+        <button id="btn-pause-agent" title="Pausar solo el agente (la simulacion sigue)">
+          🧠 Agente: ACTIVADO
         </button>
       </div>
 
@@ -138,7 +138,7 @@
 
       <!-- Reinicio -->
       <div class="control-group">
-        <button id="btn-reset" title="Reiniciar simulación y Q-Table">
+        <button id="btn-reset" title="Reiniciar simulacion y Tabla Q">
           Reiniciar Todo
         </button>
       </div>

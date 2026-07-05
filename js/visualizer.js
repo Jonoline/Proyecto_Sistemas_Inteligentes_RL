@@ -709,6 +709,16 @@ export class Visualizer {
       policyMap[p.state] = p;
     }
 
+    // Helper: extraer base del stateKey (sin sufijo de grua)
+    function stripGrua(key) {
+      return key.replace(/_lista$/, '').replace(/_cooldown$/, '');
+    }
+
+    /** Retorna la entrada de politica para un estado base + estado de grua. */
+    function getPolicy(base, grua) {
+      return policyMap[base + grua] || null;
+    }
+
     // Determinar rango de Q-values para normalizar colores
     let maxAbsQ = 1;
     for (const p of policy) {
@@ -739,15 +749,27 @@ export class Visualizer {
     for (const dn of densityOrder) {
       html += `<div class="heatmap-cell heatmap-row-label">${densityLabels[dn]}</div>`;
       for (const sp of speedOrder) {
-        const key = `${dn}_${sp}_null`;
-        const entry = policyMap[key];
-        if (entry) {
-          const maxQ = Math.max(...entry.qValues);
-          const bestIdx = entry.qValues.indexOf(maxQ);
-          const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
+        // Fusionar TODAS las entradas para esta densidad+velocidad,
+        // sin importar incidentLane o estado de grua
+        const qMerged = [0, 0, 0];
+        let found = false;
+        for (const p of policy) {
+          const parts = stripGrua(p.state).split('_');
+          if (parts[0] === dn && parts[1] === sp) {
+            found = true;
+            for (let i = 0; i < 3; i++) {
+              qMerged[i] = Math.max(qMerged[i], p.qValues[i]);
+            }
+          }
+        }
+
+        if (found) {
+          const maxQ = Math.max(...qMerged);
+          const bestIdx = qMerged.indexOf(maxQ);
           const bestInitial = ['M', 'D', 'G'][bestIdx];
+          const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
           const bg = cellColor(maxQ);
-          html += `<div class="heatmap-cell" style="background:${bg}" title="${bestLabel}: ${maxQ.toFixed(0)} (Q=[${entry.qValues.map(v=>v.toFixed(0)).join(',')}])">
+          html += `<div class="heatmap-cell" style="background:${bg}" title="${bestLabel}: ${maxQ.toFixed(0)} (Q=[${qMerged.map(v=>v.toFixed(0)).join(',')}])">
             <span class="heatmap-action">${bestInitial}</span>
             <span class="heatmap-q">${maxQ.toFixed(0)}</span>
           </div>`;
@@ -768,18 +790,34 @@ export class Visualizer {
     html += '</div>';
 
     // Seccion de incidentes (solo los que se han visitado)
-    const incidentEntries = policy.filter(p => !p.state.endsWith('null'));
+    // Filtrar y deduplicar por estado base + grua
+    const seenIncidents = new Set();
+    const incidentEntries = [];
+    for (const p of policy) {
+      const base = stripGrua(p.state);
+      if (base.endsWith('null')) continue;
+      const gruaStatus = p.state.endsWith('_cooldown') ? '_cooldown' : '_lista';
+      const key = base + gruaStatus;
+      if (seenIncidents.has(key)) continue;
+      seenIncidents.add(key);
+
+      const maxQ = Math.max(...p.qValues);
+      const bestIdx = p.qValues.indexOf(maxQ);
+      const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
+      const parts = base.split('_');
+      const lane = parts[2];
+      const gruaText = gruaStatus === '_cooldown' ? ' (enfriamiento)' : ' (lista)';
+      incidentEntries.push({
+        maxQ, bestLabel, lane, gruaText,
+        colorKey: maxQ,
+      });
+    }
     if (incidentEntries.length > 0) {
       html += '<div class="heatmap-incidents">';
       html += '<span class="label">Con incidente en carril:</span>';
-      for (const p of incidentEntries.slice(0, 4)) {
-        const parts = p.state.split('_');
-        const lane = parts[2];
-        const maxQ = Math.max(...p.qValues);
-        const bestIdx = p.qValues.indexOf(maxQ);
-        const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
-        html += `<span class="incident-chip" style="background:${cellColor(maxQ)}">
-          Carril ${lane}: ${bestLabel} (${maxQ.toFixed(0)})
+      for (const entry of incidentEntries.slice(0, 8)) {
+        html += `<span class="incident-chip" style="background:${cellColor(entry.maxQ)}">
+          Carril ${entry.lane}${entry.gruaText}: ${entry.bestLabel} (${entry.maxQ.toFixed(0)})
         </span>`;
       }
       html += '</div>';

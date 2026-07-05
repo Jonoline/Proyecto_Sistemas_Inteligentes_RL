@@ -68,7 +68,7 @@ const agent = new RLAgent({
   learningRate:   0.1,
   discountFactor: 0.9,
   epsilon:        1.0,
-  epsilonDecay:   0.997,
+  epsilonDecay:   0.99,
   minEpsilon:     0.02,
 });
 
@@ -108,7 +108,7 @@ let autoIncidentMode = false;
 
 /** Contador para generar incidentes automáticos. */
 let autoIncidentTimer = 0;
-const AUTO_INCIDENT_INTERVAL = 400; // ~7 segundos a 60fps
+const AUTO_INCIDENT_INTERVAL = 200; // ~3.3 segundos a 60fps
 
 /** Si hay una acción DIVERT activa (spawn rate reducido). */
 let divertActive = false;
@@ -130,18 +130,22 @@ let clearCooldown = 0;
  * Ejecuta un paso de decisión RL: observar → actuar → recompensa → actualizar.
  */
 function agentDecision() {
-  const currentStateKey = sim.getStateKey();
+  const baseKey = sim.getStateKey();
+  const gruaStatus = clearCooldown > 0 ? '_cooldown' : '_lista';
+  const currentStateKey = baseKey + gruaStatus;
   const currentState    = sim.getState();
 
   // Seleccionar accion
   let action = agent.selectAction(currentStateKey);
+  const selectedAction = action; // accion original del agente
+  let executedAction = action;   // accion que realmente se ejecuta
 
   // Si el agente pide CLEAR pero esta en enfriamiento, se anula
   let reward;
   if (action === ACTIONS.CLEAR && clearCooldown > 0) {
-    // Grúa no disponible: accion anulada, penalizacion leve
-    action = ACTIONS.MAINTAIN;
-    executeAction(action);
+    // Grua no disponible: ejecutar MAINTAIN, penalizar CLEAR
+    executedAction = ACTIONS.MAINTAIN;
+    executeAction(executedAction);
     reward = -5;
   } else {
     // Ejecutar accion normalmente
@@ -149,35 +153,45 @@ function agentDecision() {
     reward = agent.calculateReward(currentState, action);
   }
 
-  // Observar nuevo estado tras la accion
-  const nextStateKey = sim.getStateKey();
+  // Ajuste: DIVERT con grua lista da menos recompensa que con cooldown
+  if (executedAction === ACTIONS.DIVERT && currentState.incidentLane !== null) {
+    if (clearCooldown === 0) {
+      reward = 2;  // grua disponible: DIVERT es suboptimo
+    }
+    // si clearCooldown > 0, se mantiene el +5 original
+  }
 
-  // Actualizar Q-Table
-  agent.update(currentStateKey, action, reward, nextStateKey);
+  // Observar nuevo estado tras la accion
+  const nextBaseKey = sim.getStateKey();
+  const nextGruaStatus = clearCooldown > 0 ? '_cooldown' : '_lista';
+  const nextStateKey = nextBaseKey + nextGruaStatus;
+
+  // Actualizar Q-Table con la accion original seleccionada
+  agent.update(currentStateKey, selectedAction, reward, nextStateKey);
 
   // Acumular
   cumulativeReward += reward;
   lastReward = reward;
 
-  // --- Efectos visuales segun la accion ---
-  viz.showActionOverlay(action);
+  // --- Efectos visuales segun la accion ejecutada ---
+  viz.showActionOverlay(executedAction);
 
-  if (action === ACTIONS.CLEAR && sim.incident.vehicle) {
+  if (executedAction === ACTIONS.CLEAR && sim.incident.vehicle) {
     viz.triggerClearFlash(
       sim.incident.vehicle.x + sim.incident.vehicle.width / 2,
       sim.incident.vehicle.y + sim.incident.vehicle.height / 2
     );
   }
 
-  if (action === ACTIONS.DIVERT && divertActive) {
+  if (executedAction === ACTIONS.DIVERT && divertActive) {
     viz.setDivertBarrier(true, sim.incident.lane);
   }
 
   // --- Historial de decisiones ---
   decisionHistory.push({
     tick,
-    stateKey: currentStateKey,
-    action,
+    stateKey: baseKey,
+    action: selectedAction,
     reward,
   });
   if (decisionHistory.length > MAX_HISTORY) {
@@ -188,13 +202,11 @@ function agentDecision() {
   // Actualizar panel del agente
   const stats         = agent.getStats();
   const policySummary = agent.getPolicySummary();
-  viz.updateAgentPanel(currentState, action, reward, cumulativeReward, stats, policySummary);
+  viz.updateAgentPanel(currentState, executedAction, reward, cumulativeReward, stats, policySummary);
   rewTotalEl.textContent = cumulativeReward.toFixed(0);
 
-  // Decaer epsilon cada cierto numero de decisiones
-  if (tick % (DECISION_INTERVAL * 3) === 0) {
-    agent.decayEpsilon();
-  }
+  // Decaer epsilon en cada decision
+  agent.decayEpsilon();
 }
 
 /**
@@ -325,7 +337,7 @@ btnReset.addEventListener('click', () => {
   agentPaused = false;
   btnPause.textContent = '⏸ Pausar';
   btnPause.classList.remove('active');
-  btnPauseAgent.textContent = '🧠 Agente: ON';
+  btnPauseAgent.textContent = '🧠 Agente: ACTIVADO';
   btnPauseAgent.classList.remove('active');
   decisionHistory.length = 0;
   sim.init();
@@ -346,7 +358,7 @@ btnReset.addEventListener('click', () => {
 btnAutoInc.addEventListener('click', () => {
   autoIncidentMode = !autoIncidentMode;
   autoIncidentTimer = 0;
-  btnAutoInc.textContent = autoIncidentMode ? 'Auto-Incidentes: ON' : 'Auto-Incidentes: OFF';
+  btnAutoInc.textContent = autoIncidentMode ? 'Auto-Incidentes: ACTIVADO' : 'Auto-Incidentes: DESACTIVADO';
   btnAutoInc.classList.toggle('active', autoIncidentMode);
 });
 
@@ -362,7 +374,7 @@ btnPause.addEventListener('click', () => {
 
 btnPauseAgent.addEventListener('click', () => {
   agentPaused = !agentPaused;
-  btnPauseAgent.textContent = agentPaused ? '🧠 Agente: OFF' : '🧠 Agente: ON';
+  btnPauseAgent.textContent = agentPaused ? '🧠 Agente: DESACTIVADO' : '🧠 Agente: ACTIVADO';
   btnPauseAgent.classList.toggle('active', agentPaused);
 });
 
