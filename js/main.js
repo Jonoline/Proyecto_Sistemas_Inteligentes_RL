@@ -41,16 +41,8 @@ const decisionEl  = document.getElementById('decision-progress');
 
 // Configuración del canvas de autopista
 highwayCanvas.width  = 900;
-highwayCanvas.height = 280;
-
-// El canvas del grafico se ajusta a su contenedor
-function resizeChartCanvas() {
-  const parent = chartCanvas.parentElement;
-  chartCanvas.width  = parent.clientWidth - 24;
-  chartCanvas.height = parent.clientHeight - 24;
-}
-window.addEventListener('resize', resizeChartCanvas);
-requestAnimationFrame(() => requestAnimationFrame(resizeChartCanvas));
+highwayCanvas.height = 260;
+chartCanvas.height   = 160;
 
 // ---------------------------------------------------------------------------
 // Instancias
@@ -335,9 +327,9 @@ btnReset.addEventListener('click', () => {
   lastReward = 0;
   paused = false;
   agentPaused = false;
-  btnPause.textContent = '⏸ Pausar';
+  btnPause.textContent = 'Pausar';
   btnPause.classList.remove('active');
-  btnPauseAgent.textContent = '🧠 Agente: ACTIVADO';
+  btnPauseAgent.textContent = 'Agente: ACTIVADO';
   btnPauseAgent.classList.remove('active');
   decisionHistory.length = 0;
   sim.init();
@@ -368,13 +360,13 @@ speedSelect.addEventListener('change', () => {
 
 btnPause.addEventListener('click', () => {
   paused = !paused;
-  btnPause.textContent = paused ? '▶ Continuar' : '⏸ Pausar';
+  btnPause.textContent = paused ? 'Continuar' : 'Pausar';
   btnPause.classList.toggle('active', paused);
 });
 
 btnPauseAgent.addEventListener('click', () => {
   agentPaused = !agentPaused;
-  btnPauseAgent.textContent = agentPaused ? '🧠 Agente: DESACTIVADO' : '🧠 Agente: ACTIVADO';
+  btnPauseAgent.textContent = agentPaused ? 'Agente: DESACTIVADO' : 'Agente: ACTIVADO';
   btnPauseAgent.classList.toggle('active', agentPaused);
 });
 
@@ -409,6 +401,14 @@ window.addEventListener('beforeunload', saveQTable);
 // Arranque
 // ---------------------------------------------------------------------------
 
+// Tamaños iniciales fijos
+highwayCanvas.width  = 700;
+highwayCanvas.height = 260;
+sim.canvasWidth  = 700;
+sim.canvasHeight = 260;
+chartCanvas.width  = 680;
+chartCanvas.height = 160;
+
 sim.init();
 loadQTable();
 cumulativeReward = 0;
@@ -423,3 +423,47 @@ viz.updateAgentPanel(
 
 // Iniciar loop
 requestAnimationFrame(mainLoop);
+
+// ---------------------------------------------------------------------------
+// Pestañas (al final para asegurar DOM listo)
+// ---------------------------------------------------------------------------
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    const content = document.getElementById('tab-' + tab.dataset.tab);
+    if (content) content.classList.add('active');
+
+    if (tab.dataset.tab === 'simulacion') {
+      resizeHighwayCanvas();
+      resizeChartCanvas();
+    } else {
+      paused = true;
+      btnPause.textContent = 'Continuar';
+      btnPause.classList.add('active');
+    }
+  });
+});
+
+function resizeHighwayCanvas() {
+  const parent = highwayCanvas.parentElement;
+  if (!parent || !parent.clientWidth) return;
+  highwayCanvas.width  = parent.clientWidth - 20;
+  highwayCanvas.height = 260;
+  sim.canvasWidth  = highwayCanvas.width;
+  sim.canvasHeight = highwayCanvas.height;
+}
+
+function resizeChartCanvas() {
+  const parent = chartCanvas.parentElement;
+  if (!parent || !parent.clientWidth) return;
+  chartCanvas.width  = parent.clientWidth - 20;
+  chartCanvas.height = Math.max(120, parent.clientHeight - 40);
+}
+
+window.addEventListener('resize', () => {
+  resizeHighwayCanvas();
+  resizeChartCanvas();
+});

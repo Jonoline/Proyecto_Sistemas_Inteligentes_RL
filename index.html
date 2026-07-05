@@ -10,144 +10,176 @@
   <div class="app-container">
 
     <!-- ================================================================ -->
-    <!-- Panel de autopista (Canvas)                                       -->
+    <!-- Titulo de la pagina                                              -->
     <!-- ================================================================ -->
-    <section class="highway-panel">
-      <h2>Autopista — Simulación en Tiempo Real</h2>
-      <canvas id="highway-canvas"></canvas>
-    </section>
+    <header class="page-header">
+      <h1>Simulador de Trafico Inteligente</h1>
+      <span class="page-subtitle">Aprendizaje por Refuerzo</span>
+    </header>
 
     <!-- ================================================================ -->
-    <!-- Fila media: gráfico de métricas + consola del agente               -->
+    <!-- Barra de pestañas                                                 -->
     <!-- ================================================================ -->
-    <div class="middle-row">
+    <nav class="tab-bar">
+      <button class="tab active" data-tab="simulacion">Simulacion en Vivo</button>
+      <button class="tab" data-tab="teoria">Teoria RL</button>
+      <button class="tab" data-tab="informe">Informe</button>
+    </nav>
 
-      <!-- Gráfico de métricas -->
-      <section class="chart-panel">
-        <h2>Métricas de Tráfico</h2>
-        <canvas id="chart-canvas"></canvas>
-      </section>
+    <!-- ================================================================ -->
+    <!-- Pestaña: Simulacion en Vivo                                       -->
+    <!-- ================================================================ -->
+    <div id="tab-simulacion" class="tab-content active">
+      <div class="sim-layout">
 
-      <!-- Consola de decisiones del agente -->
-      <section class="agent-panel">
-        <h2>Centro de Control — Agente</h2>
+        <!-- Columna izquierda: simulacion + grafico -->
+        <div class="sim-left">
 
-        <div class="agent-section">
-          <span class="label">Estado observado</span>
-          <div id="agent-state">—</div>
+          <section class="highway-panel">
+            <h2>Autopista — Simulacion en Tiempo Real</h2>
+            <canvas id="highway-canvas"></canvas>
+          </section>
+
+          <section class="chart-panel">
+            <h2>Metricas de Trafico</h2>
+            <canvas id="chart-canvas"></canvas>
+          </section>
+
         </div>
 
-        <div class="agent-section">
-          <span class="label">Acción tomada</span>
-          <div id="agent-action">—</div>
+        <!-- Columna central: centro de control -->
+        <div class="sim-center">
+
+          <section class="agent-panel">
+            <h2>Centro de Control — Agente</h2>
+
+            <div class="agent-section">
+              <span class="label">Estado observado</span>
+              <div id="agent-state">—</div>
+            </div>
+
+            <div class="agent-section">
+              <span class="label">Accion tomada</span>
+              <div id="agent-action">—</div>
+            </div>
+
+            <div class="agent-section">
+              <span class="label">Recompensa</span>
+              <div id="agent-reward">—</div>
+            </div>
+
+            <div class="agent-section">
+              <span class="label">Estado de la grua</span>
+              <div id="agent-cooldown">—</div>
+            </div>
+
+            <div class="agent-section">
+              <span class="label">Proxima decision del agente</span>
+              <div id="decision-progress">—</div>
+            </div>
+
+            <div class="agent-section">
+              <span class="label">Exploracion / Explotacion</span>
+              <div id="agent-epsilon">—</div>
+            </div>
+
+            <div class="agent-section">
+              <span class="label">Ultimas decisiones</span>
+              <div id="agent-history">—</div>
+            </div>
+
+            <div class="agent-section">
+              <span class="label">Politica aprendida (Tabla Q)</span>
+              <div id="agent-policy">—</div>
+            </div>
+
+          </section>
+
         </div>
 
-        <div class="agent-section">
-          <span class="label">Recompensa</span>
-          <div id="agent-reward">—</div>
+        <!-- Columna derecha: controles -->
+        <div class="sim-right">
+
+          <section class="controls-panel">
+            <h2>Controles</h2>
+
+            <div class="control-group">
+              <label>Incidentes</label>
+              <button id="btn-trigger" class="btn-danger" title="Generar un incidente aleatorio">
+                Choque
+              </button>
+              <button id="btn-clear" class="btn-success" title="Despejar incidente manualmente">
+                Grua
+              </button>
+            </div>
+
+            <div class="control-group">
+              <button id="btn-auto-incident" title="Activar/desactivar generacion automatica de incidentes">
+                Auto-Incidentes: DESACTIVADO
+              </button>
+            </div>
+
+            <div class="control-group">
+              <label>Velocidad</label>
+              <select id="speed-select">
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1x</option>
+                <option value="5">5x</option>
+                <option value="10">10x</option>
+                <option value="20">20x</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <button id="btn-pause" title="Pausar / Continuar simulacion">
+                Pausar
+              </button>
+              <button id="btn-pause-agent" title="Pausar solo el agente (la simulacion sigue)">
+                Agente: ACTIVADO
+              </button>
+            </div>
+
+            <div class="control-group">
+              <button id="btn-reset" title="Reiniciar simulacion y Tabla Q">
+                Reiniciar Todo
+              </button>
+            </div>
+
+            <div class="control-group reward-group">
+              <label>Recompensa total</label>
+              <span id="reward-total">0</span>
+            </div>
+
+          </section>
+
         </div>
 
-        <div class="agent-section">
-          <span class="label">Estado de la grúa</span>
-          <div id="agent-cooldown">—</div>
-        </div>
-
-        <div class="agent-section">
-          <span class="label">Próxima decisión del agente</span>
-          <div id="decision-progress">—</div>
-        </div>
-
-        <div class="agent-section">
-          <span class="label">Exploración / Explotación</span>
-          <div id="agent-epsilon">—</div>
-        </div>
-
-        <div class="agent-section">
-          <span class="label">Últimas decisiones</span>
-          <div id="agent-history">—</div>
-        </div>
-
-        <div class="agent-section">
-          <span class="label">Politica aprendida (Tabla Q)</span>
-          <div id="agent-policy">—</div>
-        </div>
-      </section>
-
+      </div>
     </div>
 
     <!-- ================================================================ -->
-    <!-- Barra de controles                                                -->
+    <!-- Pestaña: Teoria RL (placeholder)                                  -->
     <!-- ================================================================ -->
-    <section class="controls-bar">
+    <div id="tab-teoria" class="tab-content">
+      <section class="placeholder-panel">
+        <h2>Teoria de Aprendizaje por Refuerzo</h2>
+        <p>Contenido en desarrollo.</p>
+      </section>
+    </div>
 
-      <!-- Grupo: incidentes -->
-      <div class="control-group">
-        <label>Incidentes</label>
-        <button id="btn-trigger" class="btn-danger" title="Generar un incidente aleatorio">
-          Choque
-        </button>
-        <button id="btn-clear" class="btn-success" title="Despejar incidente manualmente">
-          Grúa
-        </button>
-      </div>
-
-      <span class="divider"></span>
-
-      <!-- Grupo: modo automático -->
-      <div class="control-group">
-        <button id="btn-auto-incident" title="Activar/desactivar generación automática de incidentes">
-          Auto-Incidentes: DESACTIVADO
-        </button>
-      </div>
-
-      <span class="divider"></span>
-
-      <!-- Grupo: velocidad -->
-      <div class="control-group">
-        <label>Velocidad</label>
-        <select id="speed-select">
-          <option value="0.5">0.5x</option>
-          <option value="1" selected>1x</option>
-          <option value="5">5x</option>
-          <option value="10">10x</option>
-          <option value="20">20x</option>
-        </select>
-      </div>
-
-      <span class="divider"></span>
-
-      <!-- Recompensa acumulada -->
-      <div class="control-group">
-        <label>Recompensa total</label>
-        <span id="reward-total">0</span>
-      </div>
-
-      <span class="divider"></span>
-
-      <!-- Pausa -->
-      <div class="control-group">
-        <button id="btn-pause" title="Pausar / Continuar simulación">
-          ⏸ Pausar
-        </button>
-        <button id="btn-pause-agent" title="Pausar solo el agente (la simulacion sigue)">
-          🧠 Agente: ACTIVADO
-        </button>
-      </div>
-
-      <span class="divider"></span>
-
-      <!-- Reinicio -->
-      <div class="control-group">
-        <button id="btn-reset" title="Reiniciar simulacion y Tabla Q">
-          Reiniciar Todo
-        </button>
-      </div>
-
-    </section>
+    <!-- ================================================================ -->
+    <!-- Pestaña: Informe (placeholder)                                    -->
+    <!-- ================================================================ -->
+    <div id="tab-informe" class="tab-content">
+      <section class="placeholder-panel">
+        <h2>Informe de Entrenamiento</h2>
+        <p>Contenido en desarrollo.</p>
+      </section>
+    </div>
 
   </div>
 
-  <!-- Módulo principal -->
+  <!-- Modulo principal -->
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
