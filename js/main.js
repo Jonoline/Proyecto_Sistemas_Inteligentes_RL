@@ -95,10 +95,17 @@ const MAX_HISTORY = 10;
 /** Ultima recompensa obtenida (para el grafico). */
 let lastReward = 0;
 
+/** Flags para marcadores del grafico. */
+let decisionFlag = false;
+let incidentFlag = false;
+
 /** Modo automatico de incidentes (se generan solos). */
 let autoIncidentMode = false;
 
-/** Contador para generar incidentes automáticos. */
+/** Contador para actualizar el grafico a ritmo constante. */
+let chartTimer = 0;
+
+/** Contador para generar accidentes automaticos. */
 let autoIncidentTimer = 0;
 const AUTO_INCIDENT_INTERVAL = 200; // ~3.3 segundos a 60fps
 
@@ -164,6 +171,7 @@ function agentDecision() {
   // Acumular
   cumulativeReward += reward;
   lastReward = reward;
+  decisionFlag = true;
 
   // --- Efectos visuales segun la accion ejecutada ---
   viz.showActionOverlay(executedAction);
@@ -266,6 +274,7 @@ function mainLoop() {
           autoIncidentTimer = 0;
           const randomLane = Math.floor(Math.random() * sim.laneCount);
           sim.triggerIncident(randomLane);
+          incidentFlag = true;
         }
       }
 
@@ -279,9 +288,13 @@ function mainLoop() {
   // Renderizar (siempre, incluso en pausa)
   viz.render(sim, paused);
 
-  // Actualizar gráfico de métricas (solo si no está pausado)
-  if (!paused && tick % 3 === 0) {
-    viz.pushMetrics(sim.metrics.avgSpeed, lastReward);
+  // Actualizar grafico de metricas a ritmo constante
+  chartTimer += simSpeed;
+  if (!paused && chartTimer >= 3) {
+    chartTimer = 0;
+    viz.pushMetrics(sim.metrics.avgSpeed, lastReward, decisionFlag, incidentFlag);
+    decisionFlag = false;
+    incidentFlag = false;
     viz.renderChart();
   }
 
@@ -309,6 +322,7 @@ btnTrigger.addEventListener('click', () => {
   if (!sim.incident.active) {
     const lane = Math.floor(Math.random() * sim.laneCount);
     sim.triggerIncident(lane);
+    incidentFlag = true;
   }
 });
 
@@ -325,6 +339,9 @@ btnReset.addEventListener('click', () => {
   divertTimer = 0;
   clearCooldown = 0;
   lastReward = 0;
+  chartTimer = 0;
+  decisionFlag = false;
+  incidentFlag = false;
   paused = false;
   agentPaused = false;
   btnPause.textContent = 'Pausar';
@@ -350,7 +367,7 @@ btnReset.addEventListener('click', () => {
 btnAutoInc.addEventListener('click', () => {
   autoIncidentMode = !autoIncidentMode;
   autoIncidentTimer = 0;
-  btnAutoInc.textContent = autoIncidentMode ? 'Auto-Incidentes: ACTIVADO' : 'Auto-Incidentes: DESACTIVADO';
+  btnAutoInc.textContent = autoIncidentMode ? 'Auto-Accidentes: ACTIVADO' : 'Auto-Accidentes: DESACTIVADO';
   btnAutoInc.classList.toggle('active', autoIncidentMode);
 });
 

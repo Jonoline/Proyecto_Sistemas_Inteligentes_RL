@@ -512,6 +512,47 @@ select:focus { outline: none; border-color: #4FC3F7; }
 .rew-critica td:last-child { color: #F44336; }
 .rew-critica td:nth-child(3) { color: #EF5350; }
 
+.rewards-legend {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+  font-size: 8px;
+  color: #888;
+  align-items: center;
+}
+
+.rew-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-right: 2px;
+}
+
+.rew-dot-optima  { background: rgba(76,175,80,0.5); }
+.rew-dot-buena   { background: rgba(139,195,74,0.4); }
+.rew-dot-normal  { background: rgba(255,255,255,0.08); }
+.rew-dot-mala    { background: rgba(255,152,0,0.35); }
+.rew-dot-critica { background: rgba(244,67,54,0.4); }
+
+/* ==========================================================================
+   Tooltip del grafico
+   ========================================================================== */
+
+.chart-tooltip {
+  position: fixed;
+  background: #1A1A24;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: #CCC;
+  pointer-events: none;
+  z-index: 1000;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
 /* ==========================================================================
    Responsive
    ========================================================================== */

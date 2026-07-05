@@ -28,7 +28,6 @@ const CHART_MAX_POINTS  = 200;
 const CHART_BG          = '#1E1E2E';
 const CHART_GRID        = 'rgba(255,255,255,0.08)';
 const SPEED_COLOR       = '#4FC3F7';
-const FLOW_COLOR        = '#81C784';
 
 /** Duración del overlay de acción en ticks (≈1.3s a 60fps). */
 const OVERLAY_DURATION = 80;
@@ -61,6 +60,11 @@ export class Visualizer {
 
     this.speedHistory  = [];
     this.rewardHistory  = [];
+    this.isDecision     = []; // bool: hubo decision en este punto
+    this.isIncident     = []; // bool: hubo incidente en este punto
+
+    // Tooltip del grafico
+    this._setupChartTooltip();
     this._blinkTick    = 0;
 
     // Overlay de acción
@@ -436,21 +440,73 @@ export class Visualizer {
   }
 
   // -----------------------------------------------------------------------
+  // Tooltip del grafico
+  // -----------------------------------------------------------------------
+
+  _setupChartTooltip() {
+    this._tooltip = document.createElement('div');
+    this._tooltip.className = 'chart-tooltip';
+    this._tooltip.style.display = 'none';
+    this.chartCanvas.parentElement.appendChild(this._tooltip);
+
+    this.chartCanvas.addEventListener('mousemove', (e) => {
+      const rect = this.chartCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      const w = this.chartCanvas.width;
+      const h = this.chartCanvas.height;
+      const pad = { top: 22, right: 22, bottom: 26, left: 34 };
+      const pw = w - pad.left - pad.right;
+      const ph = h - pad.top - pad.bottom;
+
+      if (mx < pad.left || mx > w - pad.right || my < pad.top || my > h - pad.bottom) {
+        this._tooltip.style.display = 'none';
+        return;
+      }
+
+      const dataIdx = Math.round(((mx - pad.left) / pw) * (CHART_MAX_POINTS - 1));
+      if (dataIdx < 0 || dataIdx >= this.speedHistory.length) {
+        this._tooltip.style.display = 'none';
+        return;
+      }
+
+      const spd = this.speedHistory[dataIdx];
+      const rec = this.rewardHistory[dataIdx];
+      if (spd === undefined) { this._tooltip.style.display = 'none'; return; }
+
+      this._tooltip.innerHTML = `
+        Velocidad: <span style="color:#4FC3F7">${spd.toFixed(2)} px/f</span><br>
+        Recompensa: <span style="color:#FFD54F">${rec !== undefined ? (rec >= 0 ? '+' : '') + rec.toFixed(0) : '—'}</span>
+      `;
+      this._tooltip.style.display = 'block';
+      this._tooltip.style.left = (e.clientX + 12) + 'px';
+      this._tooltip.style.top = (e.clientY - 30) + 'px';
+    });
+
+    this.chartCanvas.addEventListener('mouseleave', () => {
+      this._tooltip.style.display = 'none';
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Gráfico de métricas
   // -----------------------------------------------------------------------
 
-  pushMetrics(avgSpeed, reward) {
+  pushMetrics(avgSpeed, reward, isDecisionPt = false, isIncidentPt = false) {
     this.speedHistory.push(avgSpeed);
     this.rewardHistory.push(reward);
-    if (this.speedHistory.length  > CHART_MAX_POINTS) this.speedHistory.shift();
-    if (this.rewardHistory.length > CHART_MAX_POINTS) this.rewardHistory.shift();
+    this.isDecision.push(isDecisionPt);
+    this.isIncident.push(isIncidentPt);
+    if (this.speedHistory.length  > CHART_MAX_POINTS) { this.speedHistory.shift(); this.isDecision.shift(); this.isIncident.shift(); }
+    if (this.rewardHistory.length > CHART_MAX_POINTS) { this.rewardHistory.shift(); }
   }
 
   renderChart() {
     const ctx  = this.chartCtx;
     const w    = this.chartCanvas.width;
     const h    = this.chartCanvas.height;
-    const pad  = { top: 18, right: 16, bottom: 22, left: 36 };
+    const pad  = { top: 22, right: 22, bottom: 26, left: 34 };
     const pw   = w - pad.left - pad.right;
     const ph   = h - pad.top - pad.bottom;
 
@@ -475,6 +531,15 @@ export class Visualizer {
     ctx.lineTo(w - pad.right, h - pad.bottom);
     ctx.stroke();
 
+    // Etiqueta eje izquierdo
+    ctx.fillStyle = SPEED_COLOR;
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Velocidad', pad.left + 2, pad.top - 8);
+    ctx.fillStyle = '#666';
+    ctx.font = '8px sans-serif';
+    ctx.fillText('(px/f)', pad.left + 2, pad.top + 3);
+
     ctx.fillStyle = '#AAA';
     ctx.font = '10px monospace';
     ctx.textAlign = 'right';
@@ -488,33 +553,22 @@ export class Visualizer {
     // Eje Y derecho: recompensa (-30 a +20)
     const rewardMin = -30;
     const rewardMax = 20;
+
+    // Etiqueta eje derecho
+    ctx.fillStyle = '#FFD54F';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('Recompensa', w - pad.right - 2, pad.top - 8);
+    ctx.fillStyle = '#666';
+    ctx.font = '8px sans-serif';
+    ctx.fillText('(pts)', w - pad.right - 2, pad.top + 3);
+
     ctx.textAlign = 'left';
     for (let i = 0; i <= 4; i++) {
       const val = rewardMin + ((rewardMax - rewardMin) / 4) * i;
       const y   = pad.top + ph - (ph / 4) * i;
       ctx.fillText(val.toFixed(0), w - pad.right + 6, y + 4);
     }
-
-    // Etiquetas de ejes
-    ctx.save();
-    ctx.translate(10, h / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = SPEED_COLOR;
-    ctx.fillText('velocidad', 0, 0);
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(w - 10, h / 2);
-    ctx.rotate(Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#FFD54F';
-    ctx.fillText('recompensa', 0, 0);
-    ctx.restore();
-
-    ctx.fillStyle = '#AAA';
-    ctx.textAlign = 'center';
-    ctx.fillText('tiempo', w / 2, h - 4);
 
     // Linea de recompensa cero
     const zeroY = pad.top + ph - ((0 - rewardMin) / (rewardMax - rewardMin)) * ph;
@@ -526,9 +580,29 @@ export class Visualizer {
     ctx.lineTo(w - pad.right, zeroY);
     ctx.stroke();
     ctx.setLineDash([]);
+    // Etiqueta "0" en la linea
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('0', pad.left - 6, zeroY + 3);
 
-    // Datos: velocidad
+    // Datos: velocidad (con relleno)
     if (this.speedHistory.length > 1) {
+      // Relleno semitransparente bajo la linea
+      ctx.fillStyle = 'rgba(79, 195, 247, 0.08)';
+      ctx.beginPath();
+      let firstX, firstY;
+      for (let i = 0; i < this.speedHistory.length; i++) {
+        const x = pad.left + (i / (CHART_MAX_POINTS - 1)) * pw;
+        const y = pad.top + ph - (this.speedHistory[i] / speedMax) * ph;
+        if (i === 0) { ctx.moveTo(x, pad.top + ph); ctx.lineTo(x, y); firstX = x; firstY = y; }
+        else ctx.lineTo(x, y);
+      }
+      ctx.lineTo(pad.left + pw, pad.top + ph);
+      ctx.closePath();
+      ctx.fill();
+
+      // Linea de velocidad
       ctx.strokeStyle = SPEED_COLOR;
       ctx.lineWidth   = 1.8;
       ctx.beginPath();
@@ -539,6 +613,35 @@ export class Visualizer {
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
+    }
+
+    // Lineas verticales de decision
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.50)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 6]);
+    for (let i = 0; i < this.isDecision.length; i++) {
+      if (this.isDecision[i]) {
+        const x = pad.left + (i / (CHART_MAX_POINTS - 1)) * pw;
+        ctx.beginPath();
+        ctx.moveTo(x, pad.top);
+        ctx.lineTo(x, pad.top + ph);
+        ctx.stroke();
+      }
+    }
+    ctx.setLineDash([]);
+
+    // Marcadores de incidente (triangulos en el borde superior)
+    for (let i = 0; i < this.isIncident.length; i++) {
+      if (this.isIncident[i]) {
+        const x = pad.left + (i / (CHART_MAX_POINTS - 1)) * pw;
+        ctx.fillStyle = '#F44336';
+        ctx.beginPath();
+        ctx.moveTo(x, pad.top);
+        ctx.lineTo(x - 4, pad.top - 7);
+        ctx.lineTo(x + 4, pad.top - 7);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
 
     // Datos: recompensa
@@ -557,13 +660,34 @@ export class Visualizer {
       ctx.stroke();
     }
 
-    // Leyenda
-    ctx.font = '11px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = SPEED_COLOR;
-    ctx.fillText('velocidad', pad.left, 14);
-    ctx.fillStyle = '#FFD54F';
-    ctx.fillText('recompensa', pad.left + 90, 14);
+    // Leyenda debajo del grafico (centrada)
+    const legendY = h - 6;
+    ctx.font = '9px monospace';
+    const items = [
+      { type: 'text', color: SPEED_COLOR, text: '— velocidad', w: 80 },
+      { type: 'text', color: '#FFD54F', text: '— recompensa', w: 88 },
+      { type: 'line', w: 12, render: () => { ctx.strokeStyle = 'rgba(255,255,255,0.50)'; ctx.lineWidth = 1; ctx.setLineDash([2,4]); ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke(); ctx.setLineDash([]); }},
+      { type: 'text', color: 'rgba(255,255,255,0.7)', text: 'decision', w: 54 },
+      { type: 'triangle', w: 12, render: () => { ctx.fillStyle = '#F44336'; ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(-3, 2); ctx.lineTo(3, 2); ctx.closePath(); ctx.fill(); }},
+      { type: 'text', color: '#F44336', text: 'accidente', w: 64 },
+    ];
+    const GAP = 10;
+    const totalW = items.reduce((s, i) => s + i.w + GAP, 0) - GAP;
+    let lpos = (w - totalW) / 2;
+
+    for (const item of items) {
+      ctx.save();
+      ctx.translate(lpos, legendY);
+      if (item.type === 'text') {
+        ctx.fillStyle = item.color;
+        ctx.textAlign = 'left';
+        ctx.fillText(item.text, 0, 1);
+      } else if (item.type === 'line' || item.type === 'triangle') {
+        item.render();
+      }
+      ctx.restore();
+      lpos += item.w + GAP;
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -581,7 +705,7 @@ export class Visualizer {
       this.panel.stateEl.innerHTML = `
         <span class="state-badge density-${state.density}">Densidad: ${state.density.toUpperCase()}</span>
         <span class="state-badge speed-${state.speed}">Velocidad: ${state.speed.toUpperCase()}</span>
-        <span class="state-badge ${state.incidentLane !== null ? 'incident-active' : ''}">Incidente: ${incStr}</span>
+        <span class="state-badge ${state.incidentLane !== null ? 'incident-active' : ''}">Accidente: ${incStr}</span>
       `;
     }
 
@@ -637,7 +761,7 @@ export class Visualizer {
         // CLEAR exitoso
         cls = 'hist-good';
         icon = '';
-        text = `Despejado incidente en carril ${lane}`;
+        text = `Despejado accidente en carril ${lane}`;
       } else if (lane && h.action === 1 && h.reward > 0) {
         // DIVERT util durante incidente
         cls = 'hist-warn';
@@ -652,13 +776,13 @@ export class Visualizer {
         // Ignoro incidente
         cls = 'hist-bad';
         icon = '';
-        text = `Ignoro incidente en carril ${lane} — congestion crece`;
+        text = `Ignoro accidente en carril ${lane} — congestion crece`;
       } else if (!lane && (h.action === 1 || h.action === 2) && h.reward < 0) {
         // Falso positivo
         const act = h.action === 1 ? 'desvio' : 'grua';
         cls = 'hist-bad';
         icon = '';
-        text = `Falso positivo: acciono ${act} sin incidente`;
+        text = `Falso positivo: acciono ${act} sin accidente`;
       } else if (!lane && h.action === 0 && h.reward >= 0) {
         // Normal
         cls = 'hist-neutral';
@@ -811,7 +935,7 @@ export class Visualizer {
     const lanes = Object.keys(laneMap).sort();
     if (lanes.length > 0) {
       html += '<div class="heatmap-incidents">';
-      html += '<span class="label">Con incidente en carril:</span>';
+      html += '<span class="label">Con accidente en carril:</span>';
       html += '<table class="incident-table"><thead><tr>';
       html += '<th>Carril</th><th>Grua lista</th><th>Enfriamiento</th>';
       html += '</tr></thead><tbody>';
@@ -847,5 +971,7 @@ export class Visualizer {
   resetChart() {
     this.speedHistory = [];
     this.rewardHistory = [];
+    this.isDecision = [];
+    this.isIncident = [];
   }
 }

@@ -104,18 +104,18 @@
             <h2>Controles</h2>
 
             <div class="control-group">
-              <label>Incidentes</label>
-              <button id="btn-trigger" class="btn-danger" title="Generar un incidente aleatorio">
+              <label>Accidentes</label>
+              <button id="btn-trigger" class="btn-danger" title="Generar un accidente aleatorio">
                 Choque
               </button>
-              <button id="btn-clear" class="btn-success" title="Despejar incidente manualmente">
+              <button id="btn-clear" class="btn-success" title="Despejar accidente manualmente">
                 Grua
               </button>
             </div>
 
             <div class="control-group">
-              <button id="btn-auto-incident" title="Activar/desactivar generacion automatica de incidentes">
-                Auto-Incidentes: DESACTIVADO
+              <button id="btn-auto-incident" title="Activar/desactivar generacion automatica de accidentes">
+                Auto-Accidentes: DESACTIVADO
               </button>
             </div>
 
@@ -156,14 +156,21 @@
             <h2>Recompensas</h2>
             <table class="rewards-table">
               <thead><tr><th>Situacion</th><th>Accion</th><th>Tipo</th><th>Rec.</th></tr></thead>
-              <tr class="rew-optima"><td>Incidente + grua lista</td><td>Grua</td><td>Resuelve</td><td>+20</td></tr>
-              <tr class="rew-buena"><td>Incidente + grua cooldown</td><td>Desviar</td><td>Mitiga</td><td>+5</td></tr>
-              <tr class="rew-buena"><td>Incidente + grua lista</td><td>Desviar</td><td>Mitiga</td><td>+2</td></tr>
+              <tr class="rew-optima"><td>Accidente + grua lista</td><td>Grua</td><td>Resuelve</td><td>+20</td></tr>
+              <tr class="rew-buena"><td>Accidente + grua cooldown</td><td>Desviar</td><td>Mitiga</td><td>+5</td></tr>
+              <tr class="rew-buena"><td>Accidente + grua lista</td><td>Desviar</td><td>Mitiga</td><td>+2</td></tr>
               <tr class="rew-normal"><td>Trafico fluido</td><td>Mantener</td><td>Normal</td><td>+1</td></tr>
-              <tr class="rew-mala"><td>Incidente + grua cooldown</td><td>Grua</td><td>Error</td><td>-5</td></tr>
-              <tr class="rew-mala"><td>Sin incidente</td><td>Desviar / Grua</td><td>Error</td><td>-10</td></tr>
-              <tr class="rew-critica"><td>Incidente</td><td>Ignorar</td><td>Critico</td><td>-30</td></tr>
+              <tr class="rew-mala"><td>Accidente + grua cooldown</td><td>Grua</td><td>Error</td><td>-5</td></tr>
+              <tr class="rew-mala"><td>Sin accidente</td><td>Desviar / Grua</td><td>Error</td><td>-10</td></tr>
+              <tr class="rew-critica"><td>Accidente</td><td>Ignorar</td><td>Critico</td><td>-30</td></tr>
             </table>
+            <div class="rewards-legend">
+              <span class="rew-dot rew-dot-optima"></span> Optima
+              <span class="rew-dot rew-dot-buena"></span> Buena
+              <span class="rew-dot rew-dot-normal"></span> Normal
+              <span class="rew-dot rew-dot-mala"></span> Mala
+              <span class="rew-dot rew-dot-critica"></span> Critica
+            </div>
           </section>
 
         </div>
