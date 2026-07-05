@@ -789,38 +789,56 @@ export class Visualizer {
     html += '<span class="legend-item"><span class="legend-swatch" style="background:#252530;border:1px solid #444"></span> No visitado</span>';
     html += '</div>';
 
-    // Seccion de incidentes (solo los que se han visitado)
-    // Filtrar y deduplicar por estado base + grua
-    const seenIncidents = new Set();
-    const incidentEntries = [];
+    // Seccion de incidentes: tabla por carril
+    // Agrupar por carril y estado de grua
+    const laneMap = {}; // { lane: { lista: {bestLabel, maxQ}, cooldown: {bestLabel, maxQ} } }
     for (const p of policy) {
       const base = stripGrua(p.state);
       if (base.endsWith('null')) continue;
-      const gruaStatus = p.state.endsWith('_cooldown') ? '_cooldown' : '_lista';
-      const key = base + gruaStatus;
-      if (seenIncidents.has(key)) continue;
-      seenIncidents.add(key);
-
+      const parts = base.split('_');
+      const lane = parts[2];
+      const gruaStatus = p.state.endsWith('_cooldown') ? 'cooldown' : 'lista';
       const maxQ = Math.max(...p.qValues);
       const bestIdx = p.qValues.indexOf(maxQ);
       const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
-      const parts = base.split('_');
-      const lane = parts[2];
-      const gruaText = gruaStatus === '_cooldown' ? ' (enfriamiento)' : ' (lista)';
-      incidentEntries.push({
-        maxQ, bestLabel, lane, gruaText,
-        colorKey: maxQ,
-      });
+
+      if (!laneMap[lane]) laneMap[lane] = {};
+      if (!laneMap[lane][gruaStatus] || maxQ > laneMap[lane][gruaStatus].maxQ) {
+        laneMap[lane][gruaStatus] = { bestLabel, maxQ };
+      }
     }
-    if (incidentEntries.length > 0) {
+
+    const lanes = Object.keys(laneMap).sort();
+    if (lanes.length > 0) {
       html += '<div class="heatmap-incidents">';
       html += '<span class="label">Con incidente en carril:</span>';
-      for (const entry of incidentEntries.slice(0, 8)) {
-        html += `<span class="incident-chip" style="background:${cellColor(entry.maxQ)}">
-          Carril ${entry.lane}${entry.gruaText}: ${entry.bestLabel} (${entry.maxQ.toFixed(0)})
-        </span>`;
+      html += '<table class="incident-table"><thead><tr>';
+      html += '<th>Carril</th><th>Grua lista</th><th>Enfriamiento</th>';
+      html += '</tr></thead><tbody>';
+
+      for (const lane of lanes) {
+        const data = laneMap[lane];
+        const listEntry = data.lista;
+        const coolEntry = data.cooldown;
+        html += '<tr>';
+        html += `<td class="incident-lane">Carril ${lane}</td>`;
+
+        if (listEntry) {
+          html += `<td class="incident-cell" style="background:${cellColor(listEntry.maxQ)}">${listEntry.bestLabel} (${listEntry.maxQ.toFixed(0)})</td>`;
+        } else {
+          html += '<td class="incident-cell incident-empty">—</td>';
+        }
+
+        if (coolEntry) {
+          html += `<td class="incident-cell" style="background:${cellColor(coolEntry.maxQ)}">${coolEntry.bestLabel} (${coolEntry.maxQ.toFixed(0)})</td>`;
+        } else {
+          html += '<td class="incident-cell incident-empty">—</td>';
+        }
+
+        html += '</tr>';
       }
-      html += '</div>';
+
+      html += '</tbody></table></div>';
     }
 
     return html;
