@@ -239,7 +239,7 @@ export class RLAgent {
    *   2. −30 — Incident ignored            (incidentLane != null  && action = MAINTAIN)
    *   3.  +5 — Incident mitigated via divert (incidentLane != null  && action = DIVERT)
    *   4. −10 — False positive intervention (incidentLane == null  && action ∈ {DIVERT, CLEAR})
-   *   5. +10 — Normal traffic, no incident (incidentLane == null  && speed ≠ "zero")
+   *   5.  +1 — Normal traffic, no incident (incidentLane == null  && speed ≠ "zero")
    *   6.   0 — All other cases
    *
    * @param {{density: string, speed: string, incidentLane: (number|null)}} state
@@ -271,7 +271,7 @@ export class RLAgent {
 
     // Rule 4 — everything is normal: no incident, flow is not stalled
     if (!hasIncident && state.speed !== 'zero') {
-      return 10;
+      return 1;
     }
 
     // Rule 5 — neutral fallback

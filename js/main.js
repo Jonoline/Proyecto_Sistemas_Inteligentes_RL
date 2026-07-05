@@ -37,6 +37,7 @@ const btnPauseAgent = document.getElementById('btn-pause-agent');
 const speedSelect  = document.getElementById('speed-select');
 const rewTotalEl   = document.getElementById('reward-total');
 const cooldownEl   = document.getElementById('agent-cooldown');
+const decisionEl  = document.getElementById('decision-progress');
 
 // Configuración del canvas de autopista
 highwayCanvas.width  = 900;
@@ -80,8 +81,8 @@ const viz = new Visualizer(highwayCanvas, chartCanvas, panelEls);
 /** Contador de ticks desde el inicio. */
 let tick = 0;
 
-/** Cada cuántos ticks el agente toma una decisión. */
-const DECISION_INTERVAL = 45;
+/** Cada cuantos ticks el agente toma una decision. */
+const DECISION_INTERVAL = 120; // ~2 segundos a 60fps
 
 /** Recompensa acumulada total. */
 let cumulativeReward = 0;
@@ -95,25 +96,28 @@ let paused = false;
 /** Agente pausado (simulación sigue corriendo sin decisiones RL). */
 let agentPaused = false;
 
-/** Historial de las últimas 10 decisiones. */
+/** Historial de las ultimas 10 decisiones. */
 const decisionHistory = [];
 const MAX_HISTORY = 10;
 
-/** Modo automático de incidentes (se generan solos). */
+/** Ultima recompensa obtenida (para el grafico). */
+let lastReward = 0;
+
+/** Modo automatico de incidentes (se generan solos). */
 let autoIncidentMode = false;
 
 /** Contador para generar incidentes automáticos. */
 let autoIncidentTimer = 0;
-const AUTO_INCIDENT_INTERVAL = 300; // ~5 segundos a 60fps
+const AUTO_INCIDENT_INTERVAL = 400; // ~7 segundos a 60fps
 
 /** Si hay una acción DIVERT activa (spawn rate reducido). */
 let divertActive = false;
 let divertTimer  = 0;
-const DIVERT_DURATION = 120; // ticks que dura el desvío
-const DIVERT_SPAWN_RATE = 0.15; // spawn rate durante desvío
+const DIVERT_DURATION = 180; // ticks que dura el desvio
+const DIVERT_SPAWN_RATE = 0.15; // spawn rate durante desvio
 
-/** Tiempo de enfriamiento de la grúa (ticks). */
-const CLEAR_COOLDOWN = 180;
+/** Tiempo de enfriamiento de la grua (ticks). */
+const CLEAR_COOLDOWN = 300;
 
 /** Contador de enfriamiento de la grúa (0 = disponible). */
 let clearCooldown = 0;
@@ -153,6 +157,7 @@ function agentDecision() {
 
   // Acumular
   cumulativeReward += reward;
+  lastReward = reward;
 
   // --- Efectos visuales segun la accion ---
   viz.showActionOverlay(action);
@@ -272,7 +277,7 @@ function mainLoop() {
 
   // Actualizar gráfico de métricas (solo si no está pausado)
   if (!paused && tick % 3 === 0) {
-    viz.pushMetrics(sim.metrics.avgSpeed, sim.metrics.flowPerMinute);
+    viz.pushMetrics(sim.metrics.avgSpeed, lastReward);
     viz.renderChart();
   }
 
@@ -283,6 +288,11 @@ function mainLoop() {
   } else {
     cooldownEl.innerHTML = '<span class="cooldown-ready">Lista</span>';
   }
+
+  // Cuenta regresiva hacia la proxima decision
+  const nextDecision = DECISION_INTERVAL - (tick % DECISION_INTERVAL);
+  const secs = (nextDecision / 60).toFixed(1);
+  decisionEl.innerHTML = `<span class="decision-countdown">${secs}s</span>`;
 
   requestAnimationFrame(mainLoop);
 }
@@ -310,6 +320,7 @@ btnReset.addEventListener('click', () => {
   divertActive = false;
   divertTimer = 0;
   clearCooldown = 0;
+  lastReward = 0;
   paused = false;
   agentPaused = false;
   btnPause.textContent = '⏸ Pausar';

@@ -60,7 +60,7 @@ export class Visualizer {
     this.panel         = panelEls;
 
     this.speedHistory  = [];
-    this.flowHistory   = [];
+    this.rewardHistory  = [];
     this._blinkTick    = 0;
 
     // Overlay de acción
@@ -203,19 +203,32 @@ export class Visualizer {
     const h     = this.highwayCanvas.height;
     const laneH = h / laneCount;
     const v     = incident.vehicle;
-    const laneY = v.y;
-    const laneY2 = laneY + v.height;
+    const laneIdx = incident.lane;
+    const laneY = laneIdx * laneH;
 
-    // Gradiente rojo desde el auto hacia atras
-    const gradientEnd = Math.max(0, v.x - 200);
+    // Todo el carril en rojo semitransparente
+    ctx.fillStyle = 'rgba(244, 67, 54, 0.18)';
+    ctx.fillRect(0, laneY, this.highwayCanvas.width, laneH);
 
-    const grad = ctx.createLinearGradient(v.x, 0, gradientEnd, 0);
-    grad.addColorStop(0, 'rgba(244, 67, 54, 0.25)');
-    grad.addColorStop(0.4, 'rgba(244, 67, 54, 0.12)');
+    // Borde superior e inferior del carril en rojo mas intenso
+    ctx.strokeStyle = 'rgba(244, 67, 54, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.moveTo(0, laneY);
+    ctx.lineTo(this.highwayCanvas.width, laneY);
+    ctx.moveTo(0, laneY + laneH);
+    ctx.lineTo(this.highwayCanvas.width, laneY + laneH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Destello mas intenso cerca del auto
+    const grad = ctx.createLinearGradient(v.x, 0, Math.max(0, v.x - 300), 0);
+    grad.addColorStop(0, 'rgba(244, 67, 54, 0.30)');
+    grad.addColorStop(0.5, 'rgba(244, 67, 54, 0.10)');
     grad.addColorStop(1, 'rgba(244, 67, 54, 0)');
-
     ctx.fillStyle = grad;
-    ctx.fillRect(gradientEnd, laneY, v.x - gradientEnd, v.height * 2);
+    ctx.fillRect(Math.max(0, v.x - 300), laneY, Math.min(300, v.x), laneH);
   }
 
   _drawDivertBarrier(laneCount) {
@@ -426,11 +439,11 @@ export class Visualizer {
   // Gráfico de métricas
   // -----------------------------------------------------------------------
 
-  pushMetrics(avgSpeed, flowPerMinute) {
+  pushMetrics(avgSpeed, reward) {
     this.speedHistory.push(avgSpeed);
-    this.flowHistory.push(flowPerMinute);
-    if (this.speedHistory.length > CHART_MAX_POINTS) this.speedHistory.shift();
-    if (this.flowHistory.length  > CHART_MAX_POINTS) this.flowHistory.shift();
+    this.rewardHistory.push(reward);
+    if (this.speedHistory.length  > CHART_MAX_POINTS) this.speedHistory.shift();
+    if (this.rewardHistory.length > CHART_MAX_POINTS) this.rewardHistory.shift();
   }
 
   renderChart() {
@@ -472,20 +485,49 @@ export class Visualizer {
       ctx.fillText(val.toFixed(1), pad.left - 6, y + 4);
     }
 
+    // Eje Y derecho: recompensa (-30 a +20)
+    const rewardMin = -30;
+    const rewardMax = 20;
+    ctx.textAlign = 'left';
+    for (let i = 0; i <= 4; i++) {
+      const val = rewardMin + ((rewardMax - rewardMin) / 4) * i;
+      const y   = pad.top + ph - (ph / 4) * i;
+      ctx.fillText(val.toFixed(0), w - pad.right + 6, y + 4);
+    }
+
+    // Etiquetas de ejes
     ctx.save();
     ctx.translate(10, h / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'center';
     ctx.fillStyle = SPEED_COLOR;
-    ctx.fillText('vel (px/f)', 0, 0);
-    ctx.fillStyle = FLOW_COLOR;
-    ctx.fillText(' / flujo', 0, 14);
+    ctx.fillText('velocidad', 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(w - 10, h / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFD54F';
+    ctx.fillText('recompensa', 0, 0);
     ctx.restore();
 
     ctx.fillStyle = '#AAA';
     ctx.textAlign = 'center';
-    ctx.fillText('tiempo (ticks)', w / 2, h - 4);
+    ctx.fillText('tiempo', w / 2, h - 4);
 
+    // Linea de recompensa cero
+    const zeroY = pad.top + ph - ((0 - rewardMin) / (rewardMax - rewardMin)) * ph;
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, zeroY);
+    ctx.lineTo(w - pad.right, zeroY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Datos: velocidad
     if (this.speedHistory.length > 1) {
       ctx.strokeStyle = SPEED_COLOR;
       ctx.lineWidth   = 1.8;
@@ -499,26 +541,29 @@ export class Visualizer {
       ctx.stroke();
     }
 
-    if (this.flowHistory.length > 1) {
-      const flowMax = Math.max(10, ...this.flowHistory);
-      ctx.strokeStyle = FLOW_COLOR;
-      ctx.lineWidth   = 1.8;
+    // Datos: recompensa
+    if (this.rewardHistory.length > 1) {
+      ctx.strokeStyle = '#FFD54F';
+      ctx.lineWidth   = 2;
       ctx.beginPath();
-      for (let i = 0; i < this.flowHistory.length; i++) {
+      for (let i = 0; i < this.rewardHistory.length; i++) {
         const x = pad.left + (i / (CHART_MAX_POINTS - 1)) * pw;
-        const y = pad.top + ph - (this.flowHistory[i] / flowMax) * ph;
+        const r = this.rewardHistory[i];
+        const clamped = Math.max(rewardMin, Math.min(rewardMax, r));
+        const y = pad.top + ph - ((clamped - rewardMin) / (rewardMax - rewardMin)) * ph;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
     }
 
+    // Leyenda
     ctx.font = '11px monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = SPEED_COLOR;
-    ctx.fillText('— velocidad', pad.left, 14);
-    ctx.fillStyle = FLOW_COLOR;
-    ctx.fillText('— flujo', pad.left + 110, 14);
+    ctx.fillText('velocidad', pad.left, 14);
+    ctx.fillStyle = '#FFD54F';
+    ctx.fillText('recompensa', pad.left + 90, 14);
   }
 
   // -----------------------------------------------------------------------
@@ -566,37 +611,79 @@ export class Visualizer {
   }
 
   /**
-   * Renderiza el historial de decisiones en el elemento DOM.
+   * Renderiza el historial de decisiones como frases narrativas.
    * @param {Array<{tick: number, stateKey: string, action: number, reward: number}>} history
    */
   renderHistory(history) {
     if (!this.panel.historyEl) return;
 
-    const actionLabels = ['MANTENER', 'DIVERT', 'CLEAR'];
-    const actionClasses = ['hist-maintain', 'hist-divert', 'hist-clear'];
-
     if (history.length === 0) {
-      this.panel.historyEl.innerHTML = '<span class="history-empty">Sin decisiones aún</span>';
+      this.panel.historyEl.innerHTML = '<span class="history-empty">Sin decisiones aun</span>';
       return;
     }
 
-    const rows = [...history].reverse().map(h => {
-      const cls = actionClasses[h.action] || '';
+    const densityLabel = { low: 'baja', medium: 'media', high: 'alta' };
+    const speedLabel   = { high: 'alta', medium: 'media', low: 'baja', zero: 'cero' };
+
+    const items = [...history].reverse().map(h => {
+      const parts  = h.stateKey.split('_');
+      const dens   = densityLabel[parts[0]] || parts[0];
+      const vel    = speedLabel[parts[1]]   || parts[1];
+      const lane   = parts[2] !== 'null' ? parts[2] : null;
+
+      let cls, icon, text;
+
+      if (lane && h.action === 2 && h.reward > 0) {
+        // CLEAR exitoso
+        cls = 'hist-good';
+        icon = '';
+        text = `Despejado incidente en carril ${lane}`;
+      } else if (lane && h.action === 1 && h.reward > 0) {
+        // DIVERT util durante incidente
+        cls = 'hist-warn';
+        icon = '';
+        text = `Desvio en carril ${lane} mientras espera grua`;
+      } else if (lane && h.action === 2 && h.reward < 0) {
+        // CLEAR en cooldown
+        cls = 'hist-bad';
+        icon = '';
+        text = `Grua no disponible — intento fallido en carril ${lane}`;
+      } else if (lane && h.action === 0) {
+        // Ignoro incidente
+        cls = 'hist-bad';
+        icon = '';
+        text = `Ignoro incidente en carril ${lane} — congestion crece`;
+      } else if (!lane && (h.action === 1 || h.action === 2) && h.reward < 0) {
+        // Falso positivo
+        const act = h.action === 1 ? 'desvio' : 'grua';
+        cls = 'hist-bad';
+        icon = '';
+        text = `Falso positivo: acciono ${act} sin incidente`;
+      } else if (!lane && h.action === 0 && h.reward >= 0) {
+        // Normal
+        cls = 'hist-neutral';
+        icon = '';
+        text = `Trafico fluido (densidad ${dens}, vel ${vel}) — sin intervenir`;
+      } else if (lane && h.action === 1 && h.reward <= 0) {
+        // DIVERT sin exito
+        cls = 'hist-warn';
+        icon = '';
+        text = `Desvio en carril ${lane}, efecto limitado`;
+      } else {
+        cls = 'hist-neutral';
+        icon = '';
+        text = `D:${dens} V:${vel} — ${['Mantener','Desviar','Grua'][h.action]}`;
+      }
+
       const sign = h.reward >= 0 ? '+' : '';
-      return `<tr class="${cls}">
-        <td>${h.tick}</td>
-        <td>${h.stateKey}</td>
-        <td>${actionLabels[h.action]}</td>
-        <td class="${h.reward >= 0 ? 'rew-pos' : 'rew-neg'}">${sign}${h.reward}</td>
-      </tr>`;
+      return `<div class="hist-entry ${cls}">
+        <span class="hist-icon">${icon}</span>
+        <span class="hist-text">${text}</span>
+        <span class="hist-reward ${h.reward >= 0 ? 'rew-pos' : 'rew-neg'}">${sign}${h.reward}</span>
+      </div>`;
     }).join('');
 
-    this.panel.historyEl.innerHTML = `
-      <table>
-        <thead><tr><th>Tick</th><th>Estado</th><th>Acción</th><th>Rec.</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    `;
+    this.panel.historyEl.innerHTML = items;
   }
 
   // -----------------------------------------------------------------------
@@ -703,6 +790,6 @@ export class Visualizer {
 
   resetChart() {
     this.speedHistory = [];
-    this.flowHistory  = [];
+    this.rewardHistory = [];
   }
 }
