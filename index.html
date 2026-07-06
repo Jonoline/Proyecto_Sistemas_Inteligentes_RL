@@ -120,14 +120,10 @@
             </div>
 
             <div class="control-group">
-              <label>Velocidad</label>
-              <select id="speed-select">
-                <option value="0.5">0.5x</option>
-                <option value="1" selected>1x</option>
-                <option value="5">5x</option>
-                <option value="10">10x</option>
-                <option value="20">20x</option>
-              </select>
+              <label>Velocidad <span id="speed-label">1.0x</span></label>
+              <div class="slider-wrap">
+                <input type="range" id="speed-slider" min="0" max="100" step="1" value="16">
+              </div>
             </div>
 
             <div class="control-group">

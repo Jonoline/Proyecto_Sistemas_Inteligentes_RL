@@ -9,13 +9,6 @@
 // Constantes visuales
 // ---------------------------------------------------------------------------
 
-const BODY_COLORS = {
-  blue:   '#4A90D9',
-  green:  '#4CAF50',
-  gray:   '#888888',
-  red:    '#E74C3C',
-};
-
 const BRAKING_COLOR     = '#E67E22';
 const STOPPED_COLOR     = '#C0392B';
 const ASPHALT_COLOR     = '#3D3D3D';
@@ -115,6 +108,7 @@ export class Visualizer {
     ctx.strokeStyle = LANE_LINE_COLOR;
     ctx.lineWidth   = 2;
     ctx.setLineDash([20, 15]);
+    ctx.lineDashOffset = -this._blinkTick * 0.6;
     for (let i = 1; i < laneCount; i++) {
       ctx.beginPath();
       ctx.moveTo(0, i * laneH);
@@ -122,6 +116,7 @@ export class Visualizer {
       ctx.stroke();
     }
     ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
     ctx.strokeStyle = BORDER_COLOR;
     ctx.lineWidth = 3;
     ctx.strokeRect(0, 0, w, h);
@@ -129,7 +124,6 @@ export class Visualizer {
 
   _drawVehicles(vehicles, incident) {
     const ctx = this.highwayCtx;
-    this._blinkTick++;
     const blinkOn = Math.floor(this._blinkTick / 15) % 2 === 0;
 
     for (const v of vehicles) {
@@ -139,13 +133,13 @@ export class Visualizer {
 
       let color;
       if (v.isIncident || v.emergencyLights) {
-        color = BODY_COLORS[v.type] || BODY_COLORS.blue;
+        color = v.bodyColor || '#4A90D9';
       } else if (v.color === 'braking') {
         color = BRAKING_COLOR;
       } else if (v.color === 'stopped') {
         color = STOPPED_COLOR;
       } else {
-        color = BODY_COLORS[v.type] || BODY_COLORS.blue;
+        color = v.bodyColor || '#4A90D9';
       }
 
       // Carroceria
@@ -493,8 +487,9 @@ export class Visualizer {
    * @param {Object} sim - Instancia de Simulation.
    * @param {boolean} paused - Si la simulación está pausada.
    */
-  render(sim, paused = false) {
+  render(sim, paused = false, simSpeed = 1) {
     this._tickOverlays();
+    if (!paused) this._blinkTick += simSpeed;
 
     this._drawAsphalt();
     this._drawLaneLines(sim.laneCount);

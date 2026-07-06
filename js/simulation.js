@@ -44,11 +44,22 @@ const ACCEL_STEP = 0.12;
 /** Ventana de ticks para calcular el flujo por minuto (asumiendo 60 fps). */
 const FLOW_WINDOW = 60;
 
-/** Tipos de vehículo base (color de carrocería). */
-const VEHICLE_TYPES = ['blue', 'green', 'gray'];
+/** Tipos de vehiculo con dimensiones, colores y probabilidad. */
+const VEHICLE_TYPES = [
+  { name: 'auto',   width: 30, height: 14, colors: ['#4A90D9', '#29B6F6', '#1E88E5', '#42A5F5', '#4CAF50', '#66BB6A', '#43A047', '#81C784', '#888888', '#7E57C2'], prob: 0.65, speedMul: 1.0 },
+  { name: 'camion', width: 48, height: 16, colors: ['#607D8B', '#795548', '#546E7A', '#8D6E63', '#455A64'],                                   prob: 0.20, speedMul: 0.7 },
+  { name: 'bus',    width: 40, height: 20, colors: ['#FF9800', '#FFB74D', '#F57C00', '#FFC107', '#FF8F00'],                                 prob: 0.15, speedMul: 0.8 },
+];
 
-/** Probabilidad de que un vehículo sea de tipo "especial" (rojo). */
-const SPECIAL_PROB = 0.08;
+/** Helper: elige un tipo de vehiculo segun probabilidad acumulada. */
+function pickVehicleType() {
+  let r = Math.random();
+  for (const t of VEHICLE_TYPES) {
+    r -= t.prob;
+    if (r <= 0) return t;
+  }
+  return VEHICLE_TYPES[0];
+}
 
 // ---------------------------------------------------------------------------
 // Clase principal
@@ -173,31 +184,30 @@ export class Simulation {
   spawnVehicle() {
     if (this.vehicles.length >= this.maxVehicles) return null;
 
-    // Elegir un carril aleatorio que no tenga un vehículo muy cerca de x=0
+    // Elegir un carril aleatorio y tipo de vehiculo
     const laneIdx = Math.floor(Math.random() * this.laneCount);
+    const vType = pickVehicleType();
 
-    // Verificar que el carril esté libre cerca del punto de spawn
+    // Verificar que el carril este libre cerca del punto de spawn
     const laneVehicles = this.lanes[laneIdx].vehicles;
-    const tooClose = laneVehicles.some((v) => v.x < VEHICLE_WIDTH + 10);
+    const tooClose = laneVehicles.some((v) => v.x < vType.width + 10);
     if (tooClose) return null;
 
-    const speed =
+    const baseSpeed =
       SPAWN_SPEED_MIN +
       Math.random() * (SPAWN_SPEED_MAX - SPAWN_SPEED_MIN);
-
-    const type = Math.random() < SPECIAL_PROB
-      ? 'red'
-      : VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)];
+    const speed = baseSpeed * vType.speedMul;
 
     const vehicle = {
       x: 0,
-      y: this.lanes[laneIdx].y - VEHICLE_HEIGHT / 2,
+      y: this.lanes[laneIdx].y - vType.height / 2,
       speed,
       targetSpeed: speed,
-      width: VEHICLE_WIDTH,
-      height: VEHICLE_HEIGHT,
-      type,
-      color: 'normal', // estado visual: normal | braking | stopped | hazard
+      width: vType.width,
+      height: vType.height,
+      type: vType.name,
+      bodyColor: vType.colors[Math.floor(Math.random() * vType.colors.length)],
+      color: 'normal',
       lane: laneIdx,
       isIncident: false,
       emergencyLights: false,

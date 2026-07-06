@@ -34,7 +34,8 @@ const btnReset     = document.getElementById('btn-reset');
 const btnAutoInc   = document.getElementById('btn-auto-incident');
 const btnPause     = document.getElementById('btn-pause');
 const btnPauseAgent = document.getElementById('btn-pause-agent');
-const speedSelect  = document.getElementById('speed-select');
+const speedSlider  = document.getElementById('speed-slider');
+const speedLabel   = document.getElementById('speed-label');
 const rewTotalEl   = document.getElementById('reward-total');
 const cooldownEl   = document.getElementById('agent-cooldown');
 const decisionEl  = document.getElementById('decision-progress');
@@ -79,8 +80,17 @@ const DECISION_INTERVAL = 120; // ~2 segundos a 60fps
 /** Recompensa acumulada total. */
 let cumulativeReward = 0;
 
-/** Velocidad de simulación (múltiplo de ticks por frame). */
-let simSpeed = parseFloat(speedSelect.value);
+/** Velocidad de simulacion (multiplicador de ticks por frame). */
+let simSpeed = 1; // se actualiza al cargar con el slider
+
+function sliderToSpeed(pos) {
+  const t = pos / 100;
+  return 0.5 + 19.5 * t * t;
+}
+
+function speedToSlider(spd) {
+  return Math.round(Math.sqrt((spd - 0.5) / 19.5) * 100);
+}
 
 /** Simulacion pausada (arranca pausada). */
 let paused = true;
@@ -294,7 +304,7 @@ function mainLoop() {
   }
 
   // Renderizar (siempre, incluso en pausa)
-  viz.render(sim, paused);
+  viz.render(sim, paused, simSpeed);
 
   // Actualizar grafico de metricas a ritmo constante
   chartTimer += simSpeed;
@@ -384,8 +394,15 @@ btnAutoInc.addEventListener('click', () => {
   btnAutoInc.classList.toggle('active', autoIncidentMode);
 });
 
-speedSelect.addEventListener('change', () => {
-  simSpeed = parseFloat(speedSelect.value);
+speedSlider.addEventListener('input', () => {
+  let pos = parseFloat(speedSlider.value);
+  let val = sliderToSpeed(pos);
+  // Ajustar a valores clave si esta cerca
+  for (const snap of [1, 5, 10, 20]) {
+    if (Math.abs(val - snap) < 0.35) { val = snap; speedSlider.value = speedToSlider(snap); break; }
+  }
+  simSpeed = val;
+  speedLabel.textContent = (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)) + 'x';
 });
 
 btnPause.addEventListener('click', () => {
@@ -452,6 +469,7 @@ viz.updateAgentPanel(
 );
 
 // Iniciar loop (simulacion arranca pausada)
+speedLabel.textContent = '1x';
 btnPause.textContent = 'Continuar';
 btnPause.classList.add('active');
 requestAnimationFrame(mainLoop);
