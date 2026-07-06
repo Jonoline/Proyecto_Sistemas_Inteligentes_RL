@@ -133,6 +133,10 @@ export class Visualizer {
     const blinkOn = Math.floor(this._blinkTick / 15) % 2 === 0;
 
     for (const v of vehicles) {
+      // Sombra bajo el auto
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.fillRect(v.x + 2, v.y + v.height, v.width, 4);
+
       let color;
       if (v.isIncident || v.emergencyLights) {
         color = BODY_COLORS[v.type] || BODY_COLORS.blue;
@@ -144,28 +148,92 @@ export class Visualizer {
         color = BODY_COLORS[v.type] || BODY_COLORS.blue;
       }
 
+      // Carroceria
       ctx.fillStyle = color;
       ctx.fillRect(v.x, v.y, v.width, v.height);
 
+      // Faros delanteros (puntos blancos al frente)
+      ctx.fillStyle = 'rgba(255, 255, 200, 0.7)';
+      ctx.fillRect(v.x + v.width - 3, v.y + 3, 3, 3);
+      ctx.fillRect(v.x + v.width - 3, v.y + v.height - 6, 3, 3);
+
+      // Luces de freno (rojas atras, mas intensas al frenar)
+      const braking = v.color === 'braking' || v.color === 'stopped' || v.speed < 0.3;
+      const brakeAlpha = braking ? 0.9 : 0.2;
+      ctx.fillStyle = `rgba(255, 50, 50, ${brakeAlpha})`;
+      ctx.fillRect(v.x + 1, v.y + 3, 4, 3);
+      ctx.fillRect(v.x + 1, v.y + v.height - 6, 4, 3);
+
+      // Luces de emergencia
       if ((v.isIncident || v.emergencyLights) && blinkOn) {
-        ctx.fillStyle = 'rgba(255, 193, 7, 0.6)';
+        ctx.fillStyle = 'rgba(255, 193, 7, 0.5)';
         ctx.fillRect(v.x, v.y, v.width, v.height);
         ctx.fillStyle = '#FFC107';
         ctx.fillRect(v.x + 2, v.y + 2, 6, 4);
         ctx.fillRect(v.x + v.width - 8, v.y + 2, 6, 4);
       }
 
+      // Borde
       ctx.strokeStyle = 'rgba(0,0,0,0.3)';
       ctx.lineWidth = 1;
       ctx.strokeRect(v.x, v.y, v.width, v.height);
     }
 
+    // Icono de peligro sobre incidente
     if (incident && incident.active && incident.vehicle && blinkOn) {
       const v = incident.vehicle;
       ctx.fillStyle = '#FF1744';
       ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('⚠', v.x + v.width / 2, v.y - 6);
+    }
+
+    // Humo del accidente
+    this._updateSmoke(incident);
+    this._drawSmoke();
+  }
+
+  // -----------------------------------------------------------------------
+  // Sistema de particulas de humo
+  // -----------------------------------------------------------------------
+
+  _updateSmoke(incident) {
+    if (!this._smokeParticles) this._smokeParticles = [];
+
+    // Generar nuevas particulas si hay incidente activo
+    if (incident && incident.active && incident.vehicle) {
+      const v = incident.vehicle;
+      if (Math.random() < 0.3) {
+        this._smokeParticles.push({
+          x: v.x + v.width / 2 + (Math.random() - 0.5) * 16,
+          y: v.y,
+          life: 1.0,
+          size: 3 + Math.random() * 4,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: -0.4 - Math.random() * 0.6,
+        });
+      }
+    }
+
+    // Actualizar particulas existentes
+    for (let i = this._smokeParticles.length - 1; i >= 0; i--) {
+      const p = this._smokeParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.015;
+      p.size += 0.08;
+      if (p.life <= 0) this._smokeParticles.splice(i, 1);
+    }
+  }
+
+  _drawSmoke() {
+    if (!this._smokeParticles) return;
+    const ctx = this.highwayCtx;
+    for (const p of this._smokeParticles) {
+      ctx.fillStyle = `rgba(180, 180, 180, ${p.life * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
@@ -973,5 +1041,6 @@ export class Visualizer {
     this.rewardHistory = [];
     this.isDecision = [];
     this.isIncident = [];
+    this._smokeParticles = [];
   }
 }

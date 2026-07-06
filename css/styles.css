@@ -253,6 +253,7 @@ section h2 {
 
 #agent-history {
   min-height: 80px;
+  height: 130px;
 }
 
 .hist-entry {

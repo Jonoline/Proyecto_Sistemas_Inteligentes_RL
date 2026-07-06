@@ -90,7 +90,7 @@ let agentPaused = false;
 
 /** Historial de las ultimas 10 decisiones. */
 const decisionHistory = [];
-const MAX_HISTORY = 10;
+const MAX_HISTORY = 6;
 
 /** Ultima recompensa obtenida (para el grafico). */
 let lastReward = 0;
@@ -107,7 +107,12 @@ let chartTimer = 0;
 
 /** Contador para generar accidentes automaticos. */
 let autoIncidentTimer = 0;
-const AUTO_INCIDENT_INTERVAL = 200; // ~3.3 segundos a 60fps
+/** Intervalo actual para el proximo accidente (se sortea entre 2-8s). */
+let autoIncidentInterval = randomIncidentInterval();
+
+function randomIncidentInterval() {
+  return 120 + Math.floor(Math.random() * 361); // 120-480 ticks = 2-8s
+}
 
 /** Si hay una acción DIVERT activa (spawn rate reducido). */
 let divertActive = false;
@@ -232,6 +237,8 @@ function executeAction(action) {
       // Despejar incidente con grúa (solo si no está en enfriamiento)
       if (sim.incident.active) {
         sim.clearIncident();
+        autoIncidentTimer = 0;
+        autoIncidentInterval = randomIncidentInterval();
         clearCooldown = CLEAR_COOLDOWN;
       }
       break;
@@ -270,8 +277,9 @@ function mainLoop() {
       // Generar incidentes automáticos
       if (autoIncidentMode) {
         autoIncidentTimer++;
-        if (autoIncidentTimer >= AUTO_INCIDENT_INTERVAL && !sim.incident.active) {
+        if (autoIncidentTimer >= autoIncidentInterval && !sim.incident.active) {
           autoIncidentTimer = 0;
+          autoIncidentInterval = randomIncidentInterval();
           const randomLane = Math.floor(Math.random() * sim.laneCount);
           sim.triggerIncident(randomLane);
           incidentFlag = true;
@@ -329,6 +337,8 @@ btnTrigger.addEventListener('click', () => {
 btnClear.addEventListener('click', () => {
   if (sim.incident.active) {
     sim.clearIncident();
+    autoIncidentTimer = 0;
+    autoIncidentInterval = randomIncidentInterval();
   }
 });
 
@@ -342,6 +352,8 @@ btnReset.addEventListener('click', () => {
   chartTimer = 0;
   decisionFlag = false;
   incidentFlag = false;
+  autoIncidentTimer = 0;
+  autoIncidentInterval = randomIncidentInterval();
   paused = false;
   agentPaused = false;
   btnPause.textContent = 'Pausar';
@@ -367,6 +379,7 @@ btnReset.addEventListener('click', () => {
 btnAutoInc.addEventListener('click', () => {
   autoIncidentMode = !autoIncidentMode;
   autoIncidentTimer = 0;
+  autoIncidentInterval = randomIncidentInterval();
   btnAutoInc.textContent = autoIncidentMode ? 'Auto-Accidentes: ACTIVADO' : 'Auto-Accidentes: DESACTIVADO';
   btnAutoInc.classList.toggle('active', autoIncidentMode);
 });
