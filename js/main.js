@@ -82,8 +82,8 @@ let cumulativeReward = 0;
 /** Velocidad de simulación (múltiplo de ticks por frame). */
 let simSpeed = parseFloat(speedSelect.value);
 
-/** Simulación pausada. */
-let paused = false;
+/** Simulacion pausada (arranca pausada). */
+let paused = true;
 
 /** Agente pausado (simulación sigue corriendo sin decisiones RL). */
 let agentPaused = false;
@@ -438,7 +438,9 @@ viz.updateAgentPanel(
   agent.getPolicySummary()
 );
 
-// Iniciar loop
+// Iniciar loop (simulacion arranca pausada)
+btnPause.textContent = 'Continuar';
+btnPause.classList.add('active');
 requestAnimationFrame(mainLoop);
 
 // ---------------------------------------------------------------------------

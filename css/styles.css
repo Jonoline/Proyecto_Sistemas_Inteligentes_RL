@@ -429,6 +429,317 @@ select:focus { outline: none; border-color: #4FC3F7; }
 }
 
 /* ==========================================================================
+   Teoria RL
+   ========================================================================== */
+
+.teoria-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.teoria-section h2 {
+  font-size: 14px;
+  color: #CCC;
+  margin-bottom: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.teoria-content p {
+  font-size: 12px;
+  color: #AAA;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.teoria-content strong {
+  color: #E0E0E0;
+}
+
+/* Diagrama agente-entorno con flechas animadas */
+.teoria-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 16px 0;
+}
+
+.diagram-box {
+  padding: 18px 28px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 130px;
+  z-index: 1;
+}
+
+.agent-box {
+  background: rgba(79, 195, 247, 0.12);
+  border: 2px solid #4FC3F7;
+  color: #4FC3F7;
+}
+
+.env-box {
+  background: rgba(255, 213, 79, 0.10);
+  border: 2px solid #FFD54F;
+  color: #FFD54F;
+}
+
+.diagram-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 4px;
+}
+
+.d-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.d-line span {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.d-line small {
+  color: #888;
+}
+
+.d-action {
+  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  color: #4FC3F7;
+  animation: pulse-arrow-right 2s infinite;
+}
+
+.d-state {
+  background: rgba(255, 213, 79, 0.08);
+  border: 1px solid rgba(255, 213, 79, 0.25);
+  color: #FFD54F;
+  animation: pulse-arrow-left 2s infinite 0.5s;
+}
+
+.d-reward {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #81C784;
+  animation: pulse-arrow-left 2s infinite 1s;
+}
+
+@keyframes pulse-arrow-right {
+  0%, 100% { transform: translateX(0); opacity: 0.7; }
+  50% { transform: translateX(6px); opacity: 1; }
+}
+
+@keyframes pulse-arrow-left {
+  0%, 100% { transform: translateX(0); opacity: 0.7; }
+  50% { transform: translateX(-6px); opacity: 1; }
+}
+
+/* Boton Ver en accion */
+.btn-ver-accion {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 1px solid #4FC3F7;
+  border-radius: 6px;
+  background: rgba(79, 195, 247, 0.08);
+  color: #4FC3F7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: auto;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.btn-ver-accion:hover {
+  background: rgba(79, 195, 247, 0.18);
+  border-color: #81D4FA;
+  color: #81D4FA;
+}
+
+/* Limpiar estilos viejos del diagrama */
+.diagram-arrow { display: none; }
+
+/* Anotacion "En el simulador" */
+.teoria-callout {
+  background: rgba(79, 195, 247, 0.06);
+  border-left: 3px solid #4FC3F7;
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-size: 11px;
+  color: #AAA;
+  line-height: 1.5;
+}
+
+.teoria-callout strong {
+  color: #4FC3F7;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 3px;
+}
+.teoria-footer {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.btn-ir-simulacion {
+  padding: 10px 28px;
+  border: 2px solid #4FC3F7;
+  border-radius: 8px;
+  background: rgba(79, 195, 247, 0.1);
+  color: #4FC3F7;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: auto;
+}
+
+.btn-ir-simulacion:hover {
+  background: rgba(79, 195, 247, 0.22);
+  border-color: #81D4FA;
+  color: #FFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 195, 247, 0.2);
+}
+
+/* Ocultar boton viejo */
+.btn-ver-accion { display: none; }
+
+/* Ecuacion de Bellman */
+.bellman-equation {
+  background: #0D1117;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 15px;
+  color: #E0E0E0;
+  text-align: center;
+  letter-spacing: 0.5px;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+.bellman-terms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.term {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+}
+
+.term strong {
+  color: #4FC3F7;
+  min-width: 90px;
+  font-family: monospace;
+}
+
+.term span {
+  color: #AAA;
+  line-height: 1.4;
+}
+
+/* Glosario con tarjetas flip */
+.glosario-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.glosario-card {
+  height: 140px;
+  perspective: 600px;
+  cursor: pointer;
+  position: relative;
+}
+
+.card-front, .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  backface-visibility: hidden;
+}
+
+.card-front {
+  background: #252530;
+  border: 1px solid #444;
+  color: #CCC;
+}
+
+.card-back {
+  background: #1A1A24;
+  border: 1px solid #555;
+  color: #AAA;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  transform: rotateY(180deg);
+  opacity: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-back em {
+  color: #81D4FA;
+  font-style: normal;
+  font-size: 11px;
+  display: block;
+  text-align: center;
+}
+
+.card-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #E0E0E0;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.glosario-card:hover .card-front {
+  transform: rotateY(180deg);
+  opacity: 0;
+}
+
+.glosario-card:hover .card-back {
+  transform: rotateY(0deg);
+  opacity: 1;
+}
+
+/* ==========================================================================
    Tabla de recompensas
    ========================================================================== */
 
