@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simulador de Trafico Inteligente — Aprendizaje por Refuerzo</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -23,7 +24,7 @@
     <nav class="tab-bar">
       <button class="tab active" data-tab="teoria">Teoria RL</button>
       <button class="tab" data-tab="simulacion">Simulacion en Vivo</button>
-      <button class="tab" data-tab="informe">Informe</button>
+      <button class="tab" data-tab="resultados">Resultados</button>
     </nav>
 
     <!-- ================================================================ -->
@@ -284,13 +285,118 @@
     </div>
 
     <!-- ================================================================ -->
-    <!-- Pestaña: Informe (placeholder)                                    -->
+    <!-- Pestaña: Resultados                                             -->
     <!-- ================================================================ -->
-    <div id="tab-informe" class="tab-content">
-      <section class="placeholder-panel">
-        <h2>Informe de Entrenamiento</h2>
-        <p>Contenido en desarrollo.</p>
-      </section>
+    <div id="tab-resultados" class="tab-content">
+      <div class="informe-layout">
+
+        <!-- Seccion 1: Analisis de Resultados -->
+        <section class="informe-section">
+          <h2>Analisis de Resultados</h2>
+
+          <div class="informe-subsection">
+            <h3>Rendimiento del agente</h3>
+            <p>La siguiente captura muestra al agente ya entrenado enfrentando un accidente. En el grafico se observa como la <strong>velocidad</strong> (linea azul) cae abruptamente al ocurrir el accidente, mientras el agente evalua la situacion. Al identificar el estado critico, despacha la <strong>grua</strong> y obtiene una recompensa de <strong>+20</strong> (linea dorada). La velocidad se recupera en los segundos siguientes, validando que la politica aprendida es efectiva.</p>
+            <div class="informe-capture">
+              <img src="capturas/grafico.png" alt="Grafico velocidad y recompensa" style="max-width:100%;border-radius:4px">
+            </div>
+            <p>Durante el entrenamiento, el agente paso de ignorar los accidentes (recompensa -30) a resolverlos consistentemente. Las <strong>lineas punteadas verticales</strong> marcan cada decision del agente y los <strong>triangulos rojos</strong> señalan los accidentes, permitiendo correlacionar eventos con la respuesta del sistema.</p>
+          </div>
+
+          <div class="informe-subsection">
+            <h3>Evolucion de la Q-Table</h3>
+            <p>El mapa de calor en la pestaña Simulacion muestra visualmente el aprendizaje. Al inicio todas las celdas aparecen grises (no visitadas). Conforme el agente entrena:</p>
+            <ul>
+              <li>Las celdas de trafico normal adoptan <strong>Mantener (M)</strong> con valores positivos bajos (+1)</li>
+              <li>Las celdas de velocidad cero con accidente se vuelven <strong>verdes</strong>: Grua (G) con +20 cuando la grua esta lista, y Desviar (D) con +5 durante el enfriamiento</li>
+              <li>La tabla de accidentes por carril confirma que la politica aprendida es consistente en los 4 carriles</li>
+            </ul>
+            <div class="informe-capture">
+              <img src="capturas/qtable.png" alt="Mapa de calor Q-Table" style="max-width:100%;border-radius:4px">
+            </div>
+          </div>
+        </section>
+
+        <!-- Seccion 2: Conclusiones del desarrollo -->
+        <section class="informe-section">
+          <h2>Conclusiones del Desarrollo</h2>
+
+          <div class="conclusion-list">
+            <div class="conclusion-item">
+              <strong>La visualizacion fue clave para la depuracion.</strong>
+              <span>Ver los autos acumularse detras de un accidente confirmo que el agente no estaba aprendiendo, lo que llevo a recalibrar recompensas, agregar el cooldown de grua y ajustar los tiempos de decision.</span>
+            </div>
+            <div class="conclusion-item">
+              <strong>Separar simulacion de RL permitio iterar rapido.</strong>
+              <span>El motor de trafico y el agente Q-Learning se desarrollaron como modulos independientes. Esto facilito probar cambios en las reglas del entorno sin tocar el algoritmo de aprendizaje, y viceversa.</span>
+            </div>
+            <div class="conclusion-item">
+              <strong>La interfaz con pestañas integra teoria y practica.</strong>
+              <span>La pestaña de Teoria RL presenta los conceptos academicos, la de Simulacion permite experimentar, y la de Resultados recoge los resultados. Todo en una sola aplicacion web sin dependencias externas.</span>
+            </div>
+            <div class="conclusion-item">
+              <strong>Calibrar recompensas fue el mayor desafio.</strong>
+              <span>Valores mal elegidos producian politicas triviales: recompensas muy altas por mantener hacian que el agente nunca interviniera; castigos muy bajos por ignorar accidentes los volvian irrelevantes. El equilibrio actual (+1 normal, +20 resolver, -30 ignorar) resulto de multiples iteraciones.</span>
+            </div>
+            <div class="conclusion-item">
+              <strong>La dimension de cooldown duplico el espacio de estados.</strong>
+              <span>Pasar de ~60 a ~120 estados fue necesario para que la accion de Desviar tuviera sentido. Sin esta distincion, el agente siempre preferia usar la grua y nunca aprendia a mitigar durante el enfriamiento.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seccion 3: Limitaciones del Aprendizaje por Refuerzo -->
+        <section class="informe-section">
+          <h2>Limitaciones del Aprendizaje por Refuerzo</h2>
+          <p style="font-size:11px;color:#888;margin-bottom:10px">Estas limitaciones aplican al paradigma RL en general, no solo a este proyecto.</p>
+
+          <div class="limitaciones-table">
+            <div class="lim-row lim-header">
+              <div>Limitacion</div><div>Descripcion</div><div>Solucion futura</div>
+            </div>
+            <div class="lim-row">
+              <div>Maldicion de la dimensionalidad</div>
+              <div>El numero de estados crece exponencialmente con cada nueva variable. Una Q-Table clasica es inviable en problemas reales con muchas dimensiones.</div>
+              <div><strong>Deep Q-Networks (DQN):</strong> redes neuronales que aproximan Q(s,a) sin necesidad de discretizar el espacio de estados.</div>
+            </div>
+            <div class="lim-row">
+              <div>Espacios continuos</div>
+              <div>Muchos problemas tienen estados y acciones continuos (posicion, velocidad, temperatura). La discretizacion impuesta por Q-Learning tabular pierde precision.</div>
+              <div><strong>Policy Gradients, DDPG, SAC:</strong> algoritmos que operan directamente sobre espacios continuos mediante redes neuronales.</div>
+            </div>
+            <div class="lim-row">
+              <div>Exploracion vs Explotacion</div>
+              <div>El agente debe balancear probar acciones nuevas (explorar) con usar lo que ya sabe (explotar). No existe una estrategia universal optima para todos los problemas.</div>
+              <div><strong>UCB, Thompson Sampling:</strong> metodos que ajustan la exploracion dinamicamente segun la incertidumbre estimada de cada accion.</div>
+            </div>
+            <div class="lim-row">
+              <div>Eficiencia de muestras</div>
+              <div>Q-Learning tabular requiere miles de episodios para converger. En entornos reales (robotica, salud, finanzas) cada episodio puede ser costoso o peligroso.</div>
+              <div><strong>Experience Replay, Transfer Learning:</strong> reutilizar experiencias pasadas y transferir conocimiento entre tareas relacionadas.</div>
+            </div>
+            <div class="lim-row">
+              <div>Suposicion de Markov</div>
+              <div>RL asume que el estado actual contiene toda la informacion relevante para decidir. En la practica, muchos problemas requieren memoria del pasado.</div>
+              <div><strong>POMDPs, LSTM:</strong> incorporar memoria recurrente para manejar informacion parcial o dependiente del historial.</div>
+            </div>
+            <div class="lim-row">
+              <div>Falta de generalizacion</div>
+              <div>Una Q-Table solo sirve para el problema exacto donde fue entrenada. Un pequeno cambio en el entorno requiere re-entrenar desde cero.</div>
+              <div><strong>Meta-Learning, representaciones aprendidas:</strong> entrenar agentes capaces de adaptarse rapidamente a nuevas tareas.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seccion 4: Referencias -->
+        <section class="informe-section">
+          <h2>Referencias</h2>
+          <ul class="referencias-list">
+            <li>Silva, M. (2019). Aprendizaje por refuerzo: Introduccion al mundo del RL. <em>ResearchGate</em>. <a href="https://www.researchgate.net/publication/335112487_Introduccion_al_Aprendizaje_por_Refuerzo" target="_blank" class="ref-link">Ver articulo</a></li>
+            <li>Watkins, C. J. C. H., & Dayan, P. (1992). Q-Learning. <em>Machine Learning</em>, 8(3-4), 279-292.</li>
+            </ul>
+        </section>
+
+      </div>
     </div>
 
   </div>
