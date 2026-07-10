@@ -110,7 +110,7 @@ let decisionFlag = false;
 let incidentFlag = false;
 
 /** Modo automatico de incidentes (se generan solos). */
-let autoIncidentMode = false;
+let autoIncidentMode = true;
 
 /** Contador para actualizar el grafico a ritmo constante. */
 let chartTimer = 0;
@@ -121,7 +121,7 @@ let autoIncidentTimer = 0;
 let autoIncidentInterval = randomIncidentInterval();
 
 function randomIncidentInterval() {
-  return 120 + Math.floor(Math.random() * 361); // 120-480 ticks = 2-8s
+  return 320 + Math.floor(Math.random() * 281); // 320-600 ticks = 5.3-10s
 }
 
 /** Si hay una acción DIVERT activa (spawn rate reducido). */
@@ -468,5 +468,27 @@ viz.updateAgentPanel(
   agent.getPolicySummary()
 );
 
+// Activar auto-accidentes por defecto
+btnAutoInc.textContent = 'Auto-Accidentes: ACTIVADO';
+btnAutoInc.classList.add('active');
+
 // Iniciar loop
 requestAnimationFrame(mainLoop);
+
+// ---------------------------------------------------------------------------
+// Navegacion: highlight del enlace activo al hacer scroll
+// ---------------------------------------------------------------------------
+
+const navLinks = document.querySelectorAll('.nav-link');
+const sections = document.querySelectorAll('section[id], div[id="conceptos"]');
+
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(section => {
+    const top = section.offsetTop - 100;
+    if (window.scrollY >= top) current = section.getAttribute('id');
+  });
+  navLinks.forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+  });
+});

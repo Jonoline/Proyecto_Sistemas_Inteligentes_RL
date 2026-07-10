@@ -918,14 +918,14 @@ export class Visualizer {
     let html = '<div class="heatmap-grid">';
 
     // Cabecera
-    html += '<div class="heatmap-cell heatmap-header">Densidad \\ Velocidad</div>';
+    html += '<div class="heatmap-cell heatmap-header">D \\ V</div>';
     for (const sp of speedOrder) {
-      html += `<div class="heatmap-cell heatmap-header heatmap-col-label">${speedLabels[sp]}</div>`;
+      html += `<div class="heatmap-cell heatmap-header heatmap-col-label">V: ${speedLabels[sp]}</div>`;
     }
 
     // Filas de datos
     for (const dn of densityOrder) {
-      html += `<div class="heatmap-cell heatmap-row-label">${densityLabels[dn]}</div>`;
+      html += `<div class="heatmap-cell heatmap-row-label">D: ${densityLabels[dn]}</div>`;
       for (const sp of speedOrder) {
         // Fusionar TODAS las entradas para esta densidad+velocidad,
         // sin importar incidentLane o estado de grua
@@ -966,58 +966,6 @@ export class Visualizer {
     html += '<span class="legend-item"><span class="legend-swatch" style="background:#F44336"></span> Q- bajo</span>';
     html += '<span class="legend-item"><span class="legend-swatch" style="background:#3d4a5c;border:1px solid #5a6570"></span> No visitado</span>';
     html += '</div>';
-
-    // Seccion de incidentes: tabla por carril
-    // Agrupar por carril y estado de grua
-    const laneMap = {}; // { lane: { lista: {bestLabel, maxQ}, cooldown: {bestLabel, maxQ} } }
-    for (const p of policy) {
-      const base = stripGrua(p.state);
-      if (base.endsWith('null')) continue;
-      const parts = base.split('_');
-      const lane = parts[2];
-      const gruaStatus = p.state.endsWith('_cooldown') ? 'cooldown' : 'lista';
-      const maxQ = Math.max(...p.qValues);
-      const bestIdx = p.qValues.indexOf(maxQ);
-      const bestLabel = ['Mantener', 'Desviar', 'Grua'][bestIdx];
-
-      if (!laneMap[lane]) laneMap[lane] = {};
-      if (!laneMap[lane][gruaStatus] || maxQ > laneMap[lane][gruaStatus].maxQ) {
-        laneMap[lane][gruaStatus] = { bestLabel, maxQ };
-      }
-    }
-
-    const lanes = Object.keys(laneMap).sort();
-    if (lanes.length > 0) {
-      html += '<div class="heatmap-incidents">';
-      html += '<span class="label">Con accidente en carril:</span>';
-      html += '<table class="incident-table"><thead><tr>';
-      html += '<th>Carril</th><th>Grua lista</th><th>Enfriamiento</th>';
-      html += '</tr></thead><tbody>';
-
-      for (const lane of lanes) {
-        const data = laneMap[lane];
-        const listEntry = data.lista;
-        const coolEntry = data.cooldown;
-        html += '<tr>';
-        html += `<td class="incident-lane">Carril ${lane}</td>`;
-
-        if (listEntry) {
-          html += `<td class="incident-cell" style="background:${cellColor(listEntry.maxQ)}">${listEntry.bestLabel} (${listEntry.maxQ.toFixed(0)})</td>`;
-        } else {
-          html += '<td class="incident-cell incident-empty">—</td>';
-        }
-
-        if (coolEntry) {
-          html += `<td class="incident-cell" style="background:${cellColor(coolEntry.maxQ)}">${coolEntry.bestLabel} (${coolEntry.maxQ.toFixed(0)})</td>`;
-        } else {
-          html += '<td class="incident-cell incident-empty">—</td>';
-        }
-
-        html += '</tr>';
-      }
-
-      html += '</tbody></table></div>';
-    }
 
     return html;
   }
