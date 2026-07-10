@@ -20,7 +20,7 @@ const CHART_HEIGHT      = 160;
 const CHART_MAX_POINTS  = 200;
 const CHART_BG          = '#1E1E2E';
 const CHART_GRID        = 'rgba(255,255,255,0.08)';
-const SPEED_COLOR       = '#4FC3F7';
+const SPEED_COLOR       = '#C96090';
 
 /** Duración del overlay de acción en ticks (≈1.3s a 60fps). */
 const OVERLAY_DURATION = 80;
@@ -369,7 +369,7 @@ export class Visualizer {
     ctx.fillStyle = `rgba(255, 255, 255, ${progress})`;
     ctx.font = 'bold 24px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('🚛', flashX, flashY);
+    ctx.fillText('GRUA', flashX, flashY);
   }
 
   // -----------------------------------------------------------------------
@@ -394,9 +394,9 @@ export class Visualizer {
     };
 
     const labels = [
-      { icon: '⏸️', text: 'MANTENER FLUJO' },
-      { icon: '🔄', text: 'DESVÍO ACTIVADO' },
-      { icon: '🚛', text: 'GRÚA DESPACHADA' },
+      { text: 'MANTENER FLUJO' },
+      { text: 'DESVIO ACTIVADO' },
+      { text: 'GRUA DESPACHADA' },
     ];
 
     const l = labels[this._overlay.action] || labels[0];
@@ -424,7 +424,7 @@ export class Visualizer {
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${l.icon}  ${l.text}`, w / 2, by + bh / 2);
+    ctx.fillText(`${l.text}`, w / 2, by + bh / 2);
 
     ctx.textBaseline = 'alphabetic';
   }
@@ -475,7 +475,7 @@ export class Visualizer {
     ctx.fillStyle = '#FFF';
     ctx.font = 'bold 22px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('⏸  PAUSADO', w / 2, this.highwayCanvas.height / 2);
+    ctx.fillText('PAUSADO', w / 2, this.highwayCanvas.height / 2);
   }
 
   // -----------------------------------------------------------------------
@@ -539,7 +539,7 @@ export class Visualizer {
       if (spd === undefined) { this._tooltip.style.display = 'none'; return; }
 
       this._tooltip.innerHTML = `
-        Velocidad: <span style="color:#4FC3F7">${spd.toFixed(2)} px/f</span><br>
+        Velocidad: <span style="color:#C96090">${spd.toFixed(2)} px/f</span><br>
         Recompensa: <span style="color:#FFD54F">${rec !== undefined ? (rec >= 0 ? '+' : '') + rec.toFixed(0) : '—'}</span>
       `;
       this._tooltip.style.display = 'block';
@@ -652,7 +652,7 @@ export class Visualizer {
     // Datos: velocidad (con relleno)
     if (this.speedHistory.length > 1) {
       // Relleno semitransparente bajo la linea
-      ctx.fillStyle = 'rgba(79, 195, 247, 0.08)';
+      ctx.fillStyle = 'rgba(201, 96, 144, 0.08)';
       ctx.beginPath();
       let firstX, firstY;
       for (let i = 0; i < this.speedHistory.length; i++) {
@@ -759,7 +759,7 @@ export class Visualizer {
 
   updateAgentPanel(state, action, reward, cumulativeReward, stats, policySummary) {
     const actionLabels = ['Mantener flujo', 'Activar desvío', 'Despejar con grúa'];
-    const actionIcons = ['⏸️', '🔄', '🚛'];
+    const actionIcons = ['', '', ''];
 
     if (this.panel.stateEl) {
       const incStr = state.incidentLane !== null
@@ -818,53 +818,44 @@ export class Visualizer {
       const vel    = speedLabel[parts[1]]   || parts[1];
       const lane   = parts[2] !== 'null' ? parts[2] : null;
 
-      let cls, icon, text;
+      let cls, text;
 
       if (lane && h.action === 2 && h.reward > 0) {
         // CLEAR exitoso
         cls = 'hist-good';
-        icon = '';
         text = `Despejado accidente en carril ${lane}`;
       } else if (lane && h.action === 1 && h.reward > 0) {
         // DIVERT util durante incidente
         cls = 'hist-warn';
-        icon = '';
         text = `Desvio en carril ${lane} mientras espera grua`;
       } else if (lane && h.action === 2 && h.reward < 0) {
         // CLEAR en cooldown
         cls = 'hist-bad';
-        icon = '';
         text = `Grua no disponible — intento fallido en carril ${lane}`;
       } else if (lane && h.action === 0) {
         // Ignoro incidente
         cls = 'hist-bad';
-        icon = '';
         text = `Ignoro accidente en carril ${lane} — congestion crece`;
       } else if (!lane && (h.action === 1 || h.action === 2) && h.reward < 0) {
         // Falso positivo
         const act = h.action === 1 ? 'desvio' : 'grua';
         cls = 'hist-bad';
-        icon = '';
         text = `Falso positivo: acciono ${act} sin accidente`;
       } else if (!lane && h.action === 0 && h.reward >= 0) {
         // Normal
         cls = 'hist-neutral';
-        icon = '';
         text = `Trafico fluido (densidad ${dens}, vel ${vel}) — sin intervenir`;
       } else if (lane && h.action === 1 && h.reward <= 0) {
         // DIVERT sin exito
         cls = 'hist-warn';
-        icon = '';
         text = `Desvio en carril ${lane}, efecto limitado`;
       } else {
         cls = 'hist-neutral';
-        icon = '';
         text = `D:${dens} V:${vel} — ${['Mantener','Desviar','Grua'][h.action]}`;
       }
 
       const sign = h.reward >= 0 ? '+' : '';
       return `<div class="hist-entry ${cls}">
-        <span class="hist-icon">${icon}</span>
         <span class="hist-text">${text}</span>
         <span class="hist-reward ${h.reward >= 0 ? 'rew-pos' : 'rew-neg'}">${sign}${h.reward}</span>
       </div>`;
@@ -916,7 +907,7 @@ export class Visualizer {
 
     /** Retorna color de fondo basado en el Q-value. */
     function cellColor(maxQ) {
-      if (maxQ === 0) return '#252530';
+      if (maxQ === 0) return '#3d4a5c';
       const ratio = Math.max(-1, Math.min(1, maxQ / maxAbsQ));
       if (ratio > 0.3)  return `rgba(76, 175, 80, ${0.2 + ratio * 0.5})`;
       if (ratio > 0)    return `rgba(255, 193, 7, ${0.2 + ratio * 0.4})`;
@@ -973,7 +964,7 @@ export class Visualizer {
     html += '<span class="legend-item"><span class="legend-swatch" style="background:#4CAF50"></span> Q+ alto</span>';
     html += '<span class="legend-item"><span class="legend-swatch" style="background:#FFC107"></span> Q neutro</span>';
     html += '<span class="legend-item"><span class="legend-swatch" style="background:#F44336"></span> Q- bajo</span>';
-    html += '<span class="legend-item"><span class="legend-swatch" style="background:#252530;border:1px solid #444"></span> No visitado</span>';
+    html += '<span class="legend-item"><span class="legend-swatch" style="background:#3d4a5c;border:1px solid #5a6570"></span> No visitado</span>';
     html += '</div>';
 
     // Seccion de incidentes: tabla por carril

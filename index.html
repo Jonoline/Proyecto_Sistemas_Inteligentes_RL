@@ -10,189 +10,26 @@
 <body>
   <div class="app-container">
 
-    <!-- ================================================================ -->
-    <!-- Titulo de la pagina                                              -->
-    <!-- ================================================================ -->
     <header class="page-header">
       <h1>Simulador de Trafico Inteligente</h1>
       <span class="page-subtitle">Aprendizaje por Refuerzo</span>
     </header>
 
-    <!-- ================================================================ -->
-    <!-- Barra de pestañas                                                 -->
-    <!-- ================================================================ -->
-    <nav class="tab-bar">
-      <button class="tab active" data-tab="teoria">Teoria RL</button>
-      <button class="tab" data-tab="simulacion">Simulacion en Vivo</button>
-      <button class="tab" data-tab="resultados">Resultados</button>
-    </nav>
-
-    <!-- ================================================================ -->
-    <!-- Pestaña: Simulacion en Vivo                                       -->
-    <!-- ================================================================ -->
-    <div id="tab-simulacion" class="tab-content">
-      <div class="sim-layout">
-
-        <!-- Columna izquierda: simulacion + grafico -->
-        <div class="sim-left">
-
-          <section class="highway-panel">
-            <h2>Autopista — Simulacion en Tiempo Real</h2>
-            <canvas id="highway-canvas"></canvas>
-          </section>
-
-          <section class="chart-panel">
-            <h2>Metricas de Trafico</h2>
-            <canvas id="chart-canvas"></canvas>
-          </section>
-
-        </div>
-
-        <!-- Columna central: centro de control -->
-        <div class="sim-center">
-
-          <section class="agent-panel">
-            <h2>Centro de Control — Agente</h2>
-
-            <div class="agent-section">
-              <span class="label">Estado observado</span>
-              <div id="agent-state">—</div>
-            </div>
-
-            <div class="agent-section">
-              <span class="label">Accion tomada</span>
-              <div id="agent-action">—</div>
-            </div>
-
-            <div class="agent-section">
-              <span class="label">Recompensa</span>
-              <div id="agent-reward">—</div>
-            </div>
-
-            <div class="agent-section">
-              <span class="label">Estado de la grua</span>
-              <div id="agent-cooldown">—</div>
-            </div>
-
-            <div class="agent-section">
-              <span class="label">Proxima decision del agente</span>
-              <div id="decision-progress">—</div>
-            </div>
-
-            <div class="agent-section">
-              <span class="label">Exploracion / Explotacion</span>
-              <div id="agent-epsilon">—</div>
-            </div>
-
-            <div class="agent-section">
-              <span class="label">Ultimas decisiones</span>
-              <div id="agent-history">—</div>
-            </div>
-
-            <div class="agent-section">
-              <span class="label">Politica aprendida (Tabla Q)</span>
-              <div id="agent-policy">—</div>
-            </div>
-
-          </section>
-
-        </div>
-
-        <!-- Columna derecha: controles -->
-        <div class="sim-right">
-
-          <section class="controls-panel">
-            <h2>Controles</h2>
-
-            <div class="control-group">
-              <label>Accidentes</label>
-              <button id="btn-trigger" class="btn-danger" title="Generar un accidente aleatorio">
-                Choque
-              </button>
-              <button id="btn-clear" class="btn-success" title="Despejar accidente manualmente">
-                Grua
-              </button>
-            </div>
-
-            <div class="control-group">
-              <button id="btn-auto-incident" title="Activar/desactivar generacion automatica de accidentes">
-                Auto-Accidentes: DESACTIVADO
-              </button>
-            </div>
-
-            <div class="control-group">
-              <label>Velocidad <span id="speed-label">1.0x</span></label>
-              <div class="slider-wrap">
-                <input type="range" id="speed-slider" min="0" max="100" step="1" value="16">
-              </div>
-            </div>
-
-            <div class="control-group">
-              <button id="btn-pause" title="Pausar / Continuar simulacion">
-                Pausar
-              </button>
-              <button id="btn-pause-agent" title="Pausar solo el agente (la simulacion sigue)">
-                Agente: ACTIVADO
-              </button>
-            </div>
-
-            <div class="control-group">
-              <button id="btn-reset" title="Reiniciar simulacion y Tabla Q">
-                Reiniciar Todo
-              </button>
-            </div>
-
-            <div class="control-group reward-group">
-              <label>Recompensa total</label>
-              <span id="reward-total">0</span>
-            </div>
-
-          </section>
-
-          <section class="rewards-panel">
-            <h2>Recompensas</h2>
-            <table class="rewards-table">
-              <thead><tr><th>Situacion</th><th>Accion</th><th>Tipo</th><th>Rec.</th></tr></thead>
-              <tr class="rew-optima"><td>Accidente + grua lista</td><td>Grua</td><td>Resuelve</td><td>+20</td></tr>
-              <tr class="rew-buena"><td>Accidente + grua cooldown</td><td>Desviar</td><td>Mitiga</td><td>+5</td></tr>
-              <tr class="rew-buena"><td>Accidente + grua lista</td><td>Desviar</td><td>Mitiga</td><td>+2</td></tr>
-              <tr class="rew-normal"><td>Trafico fluido</td><td>Mantener</td><td>Normal</td><td>+1</td></tr>
-              <tr class="rew-mala"><td>Accidente + grua cooldown</td><td>Grua</td><td>Error</td><td>-5</td></tr>
-              <tr class="rew-mala"><td>Sin accidente</td><td>Desviar / Grua</td><td>Error</td><td>-10</td></tr>
-              <tr class="rew-critica"><td>Accidente</td><td>Ignorar</td><td>Critico</td><td>-30</td></tr>
-            </table>
-            <div class="rewards-legend">
-              <span class="rew-dot rew-dot-optima"></span> Optima
-              <span class="rew-dot rew-dot-buena"></span> Buena
-              <span class="rew-dot rew-dot-normal"></span> Normal
-              <span class="rew-dot rew-dot-mala"></span> Mala
-              <span class="rew-dot rew-dot-critica"></span> Critica
-            </div>
-          </section>
-
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ================================================================ -->
-    <!-- Pestaña: Teoria RL                                               -->
-    <!-- ================================================================ -->
-    <div id="tab-teoria" class="tab-content active">
+    <!-- ============================================================ -->
+    <!-- SECCION: Teoria RL                                            -->
+    <!-- ============================================================ -->
+    <section id="seccion-teoria" class="page-section">
+      <h2 class="section-title">Teoria del Aprendizaje por Refuerzo</h2>
       <div class="teoria-layout">
 
-        <!-- Seccion 1: Que es RL -->
-        <section class="teoria-section">
+        <div class="teoria-section">
           <h2>Que es el Aprendizaje por Refuerzo?</h2>
           <div class="teoria-content">
             <p>El <strong>Aprendizaje por Refuerzo</strong> (RL) es un paradigma de inteligencia artificial donde un <strong>agente</strong> aprende a tomar decisiones mediante la interaccion con un <strong>entorno</strong>. A diferencia de los sistemas supervisados, el agente no recibe ejemplos etiquetados: <strong>explora, actua, y recibe recompensas o castigos</strong> segun el resultado de sus acciones.</p>
-
             <p>El objetivo del agente es descubrir una <strong>politica</strong> —una estrategia que indique que accion tomar en cada situacion— que maximice la <strong>recompensa acumulada</strong> a lo largo del tiempo, no solo la recompensa inmediata.</p>
-
             <div class="teoria-callout">
               <strong>En el simulador:</strong> El agente es el <em>Centro de Control</em> que observa la autopista. Aprende que ante un accidente debe despachar una grua (+20 pts), y que durante el enfriamiento de esta conviene desviar el trafico (+5 pts).
             </div>
-
             <div class="teoria-diagram">
               <div class="diagram-box agent-box">Agente</div>
               <div class="diagram-lines">
@@ -202,17 +39,14 @@
               </div>
               <div class="diagram-box env-box">Entorno</div>
             </div>
-
             <p>El ciclo es continuo: el agente <strong>observa</strong> el estado del entorno, <strong>decide</strong> una accion, la <strong>ejecuta</strong>, y recibe un nuevo estado y una <strong>recompensa</strong>. Este ciclo se repite hasta que el agente converge a una politica optima.</p>
           </div>
-        </section>
+        </div>
 
-        <!-- Seccion 2: Ecuacion de Bellman -->
-        <section class="teoria-section">
+        <div class="teoria-section">
           <h2>El Algoritmo Q-Learning</h2>
           <div class="teoria-content">
             <p><strong>Q-Learning</strong> es un algoritmo de aprendizaje por refuerzo <em>libre de modelo</em>: el agente no necesita conocer la dinamica del entorno, solo experimentarlo. Mantiene una <strong>Q-Table</strong> que asigna un valor numerico a cada par <em>(estado, accion)</em>, estimando la recompensa futura esperada.</p>
-
             <p>En cada paso, el agente actualiza la tabla usando la <strong>ecuacion de Bellman</strong>:</p>
             <div class="bellman-equation">
               Q(s, a) ← Q(s, a) + α [ r + γ · max Q(s', a') − Q(s, a) ]
@@ -224,17 +58,14 @@
               <div class="term"><strong>γ (gamma)</strong><span>Factor de descuento: pondera recompensas futuras vs inmediatas (tipico: 0.9)</span></div>
               <div class="term"><strong>max Q(s', a')</strong><span>Mejor valor estimado del siguiente estado (el agente "mira hacia adelante")</span></div>
             </div>
-
             <div class="teoria-callout">
-              <strong>En el simulador:</strong> La Q-Table tiene ~120 estados (densidad x velocidad x carril x estado de grua). Comienza en ceros y se actualiza cada 2 segundos. El <strong>mapa de calor</strong> en la pestaña Simulacion muestra visualmente los valores aprendidos.
+              <strong>En el simulador:</strong> La Q-Table tiene ~120 estados (densidad x velocidad x carril x estado de grua). Comienza en ceros y se actualiza cada 2 segundos. El <strong>mapa de calor</strong> en la seccion Simulacion muestra visualmente los valores aprendidos.
             </div>
-
             <p>La diferencia <strong>r + γ·max Q(s',a') − Q(s,a)</strong> se conoce como <strong>error TD</strong> (Temporal Difference). Si es positivo, la accion fue mejor de lo esperado y su valor Q aumenta. Si es negativo, el valor Q disminuye.</p>
           </div>
-        </section>
+        </div>
 
-        <!-- Seccion 3: Glosario -->
-        <section class="teoria-section">
+        <div class="teoria-section">
           <h2>Conceptos Clave</h2>
           <p style="font-size:11px;color:#888;margin-bottom:10px">Pasa el cursor sobre cada tarjeta para ver su definicion.</p>
           <div class="glosario-grid">
@@ -256,7 +87,7 @@
             </div>
             <div class="glosario-card">
               <div class="card-front">Recompensa</div>
-              <div class="card-back"><span class="card-title">Recompensa</span>Señal numerica que indica la calidad inmediata de una accion. El agente busca maximizar la suma acumulada.<br><br><em>Simulador: +20 resolver, +5 mitigar, -30 ignorar accidente.</em></div>
+              <div class="card-back"><span class="card-title">Recompensa</span>Senal numerica que indica la calidad inmediata de una accion. El agente busca maximizar la suma acumulada.<br><br><em>Simulador: +20 resolver, +5 mitigar, -30 ignorar accidente.</em></div>
             </div>
             <div class="glosario-card">
               <div class="card-front">Politica (π)</div>
@@ -271,41 +102,145 @@
               <div class="card-back"><span class="card-title">Q-Table</span>Tabla que almacena el valor Q(s,a) para cada par estado-accion. Se actualiza iterativamente con la ecuacion de Bellman.<br><br><em>Simulador: ~120 estados, visible como mapa de calor.</em></div>
             </div>
             <div class="glosario-card">
-              <div class="card-front">Factor de descuento (γ)</div>
+              <div class="card-front">Factor γ</div>
               <div class="card-back"><span class="card-title">Factor γ</span>Controla la importancia de recompensas futuras. γ cercano a 1 valora el largo plazo; γ cercano a 0 prefiere recompensas inmediatas.<br><br><em>Simulador: γ = 0.9.</em></div>
             </div>
           </div>
-        </section>
-
-        <div class="teoria-footer">
-          <button class="btn-ir-simulacion" onclick="document.querySelector('[data-tab=simulacion]').click()">Ir a la Simulacion en Vivo</button>
         </div>
 
       </div>
-    </div>
+    </section>
 
-    <!-- ================================================================ -->
-    <!-- Pestaña: Resultados                                             -->
-    <!-- ================================================================ -->
-    <div id="tab-resultados" class="tab-content">
+    <!-- ============================================================ -->
+    <!-- SECCION: Simulacion en Vivo                                   -->
+    <!-- ============================================================ -->
+    <section id="seccion-simulacion" class="page-section">
+      <h2 class="section-title">Simulacion en Vivo</h2>
+      <div class="sim-layout">
+
+        <div class="sim-left">
+          <section class="highway-panel">
+            <h2>Autopista — Simulacion en Tiempo Real</h2>
+            <canvas id="highway-canvas"></canvas>
+          </section>
+          <section class="chart-panel">
+            <h2>Metricas de Trafico</h2>
+            <canvas id="chart-canvas"></canvas>
+          </section>
+        </div>
+
+        <div class="sim-center">
+          <section class="agent-panel">
+            <h2>Centro de Control — Agente</h2>
+            <div class="agent-section">
+              <span class="label">Estado observado</span>
+              <div id="agent-state">—</div>
+            </div>
+            <div class="agent-section">
+              <span class="label">Accion tomada</span>
+              <div id="agent-action">—</div>
+            </div>
+            <div class="agent-section">
+              <span class="label">Recompensa</span>
+              <div id="agent-reward">—</div>
+            </div>
+            <div class="agent-section">
+              <span class="label">Estado de la grua</span>
+              <div id="agent-cooldown">—</div>
+            </div>
+            <div class="agent-section">
+              <span class="label">Proxima decision del agente</span>
+              <div id="decision-progress">—</div>
+            </div>
+            <div class="agent-section">
+              <span class="label">Exploracion / Explotacion</span>
+              <div id="agent-epsilon">—</div>
+            </div>
+            <div class="agent-section">
+              <span class="label">Ultimas decisiones</span>
+              <div id="agent-history">—</div>
+            </div>
+            <div class="agent-section">
+              <span class="label">Politica aprendida (Tabla Q)</span>
+              <div id="agent-policy">—</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="sim-right">
+          <section class="controls-panel">
+            <h2>Controles</h2>
+            <div class="control-group">
+              <label>Accidentes</label>
+              <button id="btn-trigger" class="btn-danger" title="Generar un accidente aleatorio">Choque</button>
+              <button id="btn-clear" class="btn-success" title="Despejar accidente manualmente">Grua</button>
+            </div>
+            <div class="control-group">
+              <button id="btn-auto-incident" title="Activar/desactivar generacion automatica de accidentes">Auto-Accidentes: DESACTIVADO</button>
+            </div>
+            <div class="control-group">
+              <label>Velocidad <span id="speed-label">1.0x</span></label>
+              <div class="slider-wrap">
+                <input type="range" id="speed-slider" min="0" max="100" step="1" value="16">
+              </div>
+            </div>
+            <div class="control-group">
+              <button id="btn-pause" title="Pausar / Continuar simulacion">Pausar</button>
+              <button id="btn-pause-agent" title="Pausar solo el agente (la simulacion sigue)">Agente: ACTIVADO</button>
+            </div>
+            <div class="control-group">
+              <button id="btn-reset" title="Reiniciar simulacion y Tabla Q">Reiniciar Todo</button>
+            </div>
+            <div class="control-group reward-group">
+              <label>Recompensa total</label>
+              <span id="reward-total">0</span>
+            </div>
+          </section>
+          <section class="rewards-panel">
+            <h2>Recompensas</h2>
+            <table class="rewards-table">
+              <thead><tr><th>Situacion</th><th>Accion</th><th>Tipo</th><th>Rec.</th></tr></thead>
+              <tr class="rew-optima"><td>Accidente + grua lista</td><td>Grua</td><td>Resuelve</td><td>+20</td></tr>
+              <tr class="rew-buena"><td>Accidente + grua cooldown</td><td>Desviar</td><td>Mitiga</td><td>+5</td></tr>
+              <tr class="rew-buena"><td>Accidente + grua lista</td><td>Desviar</td><td>Mitiga</td><td>+2</td></tr>
+              <tr class="rew-normal"><td>Trafico fluido</td><td>Mantener</td><td>Normal</td><td>+1</td></tr>
+              <tr class="rew-mala"><td>Accidente + grua cooldown</td><td>Grua</td><td>Error</td><td>-5</td></tr>
+              <tr class="rew-mala"><td>Sin accidente</td><td>Desviar / Grua</td><td>Error</td><td>-10</td></tr>
+              <tr class="rew-critica"><td>Accidente</td><td>Ignorar</td><td>Critico</td><td>-30</td></tr>
+            </table>
+            <div class="rewards-legend">
+              <span class="rew-dot rew-dot-optima"></span> Optima
+              <span class="rew-dot rew-dot-buena"></span> Buena
+              <span class="rew-dot rew-dot-normal"></span> Normal
+              <span class="rew-dot rew-dot-mala"></span> Mala
+              <span class="rew-dot rew-dot-critica"></span> Critica
+            </div>
+          </section>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SECCION: Resultados                                           -->
+    <!-- ============================================================ -->
+    <section id="seccion-resultados" class="page-section">
+      <h2 class="section-title">Resultados</h2>
       <div class="informe-layout">
 
-        <!-- Seccion 1: Analisis de Resultados -->
-        <section class="informe-section">
+        <div class="informe-section">
           <h2>Analisis de Resultados</h2>
-
           <div class="informe-subsection">
             <h3>Rendimiento del agente</h3>
             <p>La siguiente captura muestra al agente ya entrenado enfrentando un accidente. En el grafico se observa como la <strong>velocidad</strong> (linea azul) cae abruptamente al ocurrir el accidente, mientras el agente evalua la situacion. Al identificar el estado critico, despacha la <strong>grua</strong> y obtiene una recompensa de <strong>+20</strong> (linea dorada). La velocidad se recupera en los segundos siguientes, validando que la politica aprendida es efectiva.</p>
             <div class="informe-capture">
               <img src="capturas/grafico.png" alt="Grafico velocidad y recompensa" style="max-width:100%;border-radius:4px">
             </div>
-            <p>Durante el entrenamiento, el agente paso de ignorar los accidentes (recompensa -30) a resolverlos consistentemente. Las <strong>lineas punteadas verticales</strong> marcan cada decision del agente y los <strong>triangulos rojos</strong> señalan los accidentes, permitiendo correlacionar eventos con la respuesta del sistema.</p>
+            <p>Durante el entrenamiento, el agente paso de ignorar los accidentes (recompensa -30) a resolverlos consistentemente. Las <strong>lineas punteadas verticales</strong> marcan cada decision del agente y los <strong>triangulos rojos</strong> senalan los accidentes, permitiendo correlacionar eventos con la respuesta del sistema.</p>
           </div>
-
           <div class="informe-subsection">
             <h3>Evolucion de la Q-Table</h3>
-            <p>El mapa de calor en la pestaña Simulacion muestra visualmente el aprendizaje. Al inicio todas las celdas aparecen grises (no visitadas). Conforme el agente entrena:</p>
+            <p>El mapa de calor en la seccion Simulacion muestra visualmente el aprendizaje. Al inicio todas las celdas aparecen grises (no visitadas). Conforme el agente entrena:</p>
             <ul>
               <li>Las celdas de trafico normal adoptan <strong>Mantener (M)</strong> con valores positivos bajos (+1)</li>
               <li>Las celdas de velocidad cero con accidente se vuelven <strong>verdes</strong>: Grua (G) con +20 cuando la grua esta lista, y Desviar (D) con +5 durante el enfriamiento</li>
@@ -315,93 +250,46 @@
               <img src="capturas/qtable.png" alt="Mapa de calor Q-Table" style="max-width:100%;border-radius:4px">
             </div>
           </div>
-        </section>
+        </div>
 
-        <!-- Seccion 2: Conclusiones del desarrollo -->
-        <section class="informe-section">
+        <div class="informe-section">
           <h2>Conclusiones del Desarrollo</h2>
-
           <div class="conclusion-list">
-            <div class="conclusion-item">
-              <strong>La visualizacion fue clave para la depuracion.</strong>
-              <span>Ver los autos acumularse detras de un accidente confirmo que el agente no estaba aprendiendo, lo que llevo a recalibrar recompensas, agregar el cooldown de grua y ajustar los tiempos de decision.</span>
-            </div>
-            <div class="conclusion-item">
-              <strong>Separar simulacion de RL permitio iterar rapido.</strong>
-              <span>El motor de trafico y el agente Q-Learning se desarrollaron como modulos independientes. Esto facilito probar cambios en las reglas del entorno sin tocar el algoritmo de aprendizaje, y viceversa.</span>
-            </div>
-            <div class="conclusion-item">
-              <strong>La interfaz con pestañas integra teoria y practica.</strong>
-              <span>La pestaña de Teoria RL presenta los conceptos academicos, la de Simulacion permite experimentar, y la de Resultados recoge los resultados. Todo en una sola aplicacion web sin dependencias externas.</span>
-            </div>
-            <div class="conclusion-item">
-              <strong>Calibrar recompensas fue el mayor desafio.</strong>
-              <span>Valores mal elegidos producian politicas triviales: recompensas muy altas por mantener hacian que el agente nunca interviniera; castigos muy bajos por ignorar accidentes los volvian irrelevantes. El equilibrio actual (+1 normal, +20 resolver, -30 ignorar) resulto de multiples iteraciones.</span>
-            </div>
-            <div class="conclusion-item">
-              <strong>La dimension de cooldown duplico el espacio de estados.</strong>
-              <span>Pasar de ~60 a ~120 estados fue necesario para que la accion de Desviar tuviera sentido. Sin esta distincion, el agente siempre preferia usar la grua y nunca aprendia a mitigar durante el enfriamiento.</span>
-            </div>
+            <div class="conclusion-item"><strong>La visualizacion fue clave para la depuracion.</strong><span>Ver los autos acumularse detras de un accidente confirmo que el agente no estaba aprendiendo, lo que llevo a recalibrar recompensas, agregar el cooldown de grua y ajustar los tiempos de decision.</span></div>
+            <div class="conclusion-item"><strong>Separar simulacion de RL permitio iterar rapido.</strong><span>El motor de trafico y el agente Q-Learning se desarrollaron como modulos independientes. Esto facilito probar cambios en las reglas del entorno sin tocar el algoritmo de aprendizaje, y viceversa.</span></div>
+            <div class="conclusion-item"><strong>La interfaz integra teoria y practica en una sola pagina.</strong><span>La seccion de Teoria RL presenta los conceptos academicos, la de Simulacion permite experimentar, y la de Resultados recoge los resultados. Todo en una sola aplicacion web sin dependencias externas.</span></div>
+            <div class="conclusion-item"><strong>Calibrar recompensas fue el mayor desafio.</strong><span>Valores mal elegidos producian politicas triviales: recompensas muy altas por mantener hacian que el agente nunca interviniera; castigos muy bajos por ignorar accidentes los volvian irrelevantes. El equilibrio actual (+1 normal, +20 resolver, -30 ignorar) resulto de multiples iteraciones.</span></div>
+            <div class="conclusion-item"><strong>La dimension de cooldown duplico el espacio de estados.</strong><span>Pasar de ~60 a ~120 estados fue necesario para que la accion de Desviar tuviera sentido. Sin esta distincion, el agente siempre preferia usar la grua y nunca aprendia a mitigar durante el enfriamiento.</span></div>
           </div>
-        </section>
+        </div>
 
-        <!-- Seccion 3: Limitaciones del Aprendizaje por Refuerzo -->
-        <section class="informe-section">
+        <div class="informe-section">
           <h2>Limitaciones del Aprendizaje por Refuerzo</h2>
           <p style="font-size:11px;color:#888;margin-bottom:10px">Estas limitaciones aplican al paradigma RL en general, no solo a este proyecto.</p>
-
           <div class="limitaciones-table">
-            <div class="lim-row lim-header">
-              <div>Limitacion</div><div>Descripcion</div><div>Solucion futura</div>
-            </div>
-            <div class="lim-row">
-              <div>Maldicion de la dimensionalidad</div>
-              <div>El numero de estados crece exponencialmente con cada nueva variable. Una Q-Table clasica es inviable en problemas reales con muchas dimensiones.</div>
-              <div><strong>Deep Q-Networks (DQN):</strong> redes neuronales que aproximan Q(s,a) sin necesidad de discretizar el espacio de estados.</div>
-            </div>
-            <div class="lim-row">
-              <div>Espacios continuos</div>
-              <div>Muchos problemas tienen estados y acciones continuos (posicion, velocidad, temperatura). La discretizacion impuesta por Q-Learning tabular pierde precision.</div>
-              <div><strong>Policy Gradients, DDPG, SAC:</strong> algoritmos que operan directamente sobre espacios continuos mediante redes neuronales.</div>
-            </div>
-            <div class="lim-row">
-              <div>Exploracion vs Explotacion</div>
-              <div>El agente debe balancear probar acciones nuevas (explorar) con usar lo que ya sabe (explotar). No existe una estrategia universal optima para todos los problemas.</div>
-              <div><strong>UCB, Thompson Sampling:</strong> metodos que ajustan la exploracion dinamicamente segun la incertidumbre estimada de cada accion.</div>
-            </div>
-            <div class="lim-row">
-              <div>Eficiencia de muestras</div>
-              <div>Q-Learning tabular requiere miles de episodios para converger. En entornos reales (robotica, salud, finanzas) cada episodio puede ser costoso o peligroso.</div>
-              <div><strong>Experience Replay, Transfer Learning:</strong> reutilizar experiencias pasadas y transferir conocimiento entre tareas relacionadas.</div>
-            </div>
-            <div class="lim-row">
-              <div>Suposicion de Markov</div>
-              <div>RL asume que el estado actual contiene toda la informacion relevante para decidir. En la practica, muchos problemas requieren memoria del pasado.</div>
-              <div><strong>POMDPs, LSTM:</strong> incorporar memoria recurrente para manejar informacion parcial o dependiente del historial.</div>
-            </div>
-            <div class="lim-row">
-              <div>Falta de generalizacion</div>
-              <div>Una Q-Table solo sirve para el problema exacto donde fue entrenada. Un pequeno cambio en el entorno requiere re-entrenar desde cero.</div>
-              <div><strong>Meta-Learning, representaciones aprendidas:</strong> entrenar agentes capaces de adaptarse rapidamente a nuevas tareas.</div>
-            </div>
+            <div class="lim-row lim-header"><div>Limitacion</div><div>Descripcion</div><div>Solucion futura</div></div>
+            <div class="lim-row"><div>Maldicion de la dimensionalidad</div><div>El numero de estados crece exponencialmente con cada nueva variable. Una Q-Table clasica es inviable en problemas reales con muchas dimensiones.</div><div><strong>Deep Q-Networks (DQN):</strong> redes neuronales que aproximan Q(s,a) sin necesidad de discretizar el espacio de estados.</div></div>
+            <div class="lim-row"><div>Espacios continuos</div><div>Muchos problemas tienen estados y acciones continuos (posicion, velocidad, temperatura). La discretizacion impuesta por Q-Learning tabular pierde precision.</div><div><strong>Policy Gradients, DDPG, SAC:</strong> algoritmos que operan directamente sobre espacios continuos mediante redes neuronales.</div></div>
+            <div class="lim-row"><div>Exploracion vs Explotacion</div><div>El agente debe balancear probar acciones nuevas (explorar) con usar lo que ya sabe (explotar). No existe una estrategia universal optima para todos los problemas.</div><div><strong>UCB, Thompson Sampling:</strong> metodos que ajustan la exploracion dinamicamente segun la incertidumbre estimada de cada accion.</div></div>
+            <div class="lim-row"><div>Eficiencia de muestras</div><div>Q-Learning tabular requiere miles de episodios para converger. En entornos reales (robotica, salud, finanzas) cada episodio puede ser costoso o peligroso.</div><div><strong>Experience Replay, Transfer Learning:</strong> reutilizar experiencias pasadas y transferir conocimiento entre tareas relacionadas.</div></div>
+            <div class="lim-row"><div>Suposicion de Markov</div><div>RL asume que el estado actual contiene toda la informacion relevante para decidir. En la practica, muchos problemas requieren memoria del pasado.</div><div><strong>POMDPs, LSTM:</strong> incorporar memoria recurrente para manejar informacion parcial o dependiente del historial.</div></div>
+            <div class="lim-row"><div>Falta de generalizacion</div><div>Una Q-Table solo sirve para el problema exacto donde fue entrenada. Un pequeno cambio en el entorno requiere re-entrenar desde cero.</div><div><strong>Meta-Learning, representaciones aprendidas:</strong> entrenar agentes capaces de adaptarse rapidamente a nuevas tareas.</div></div>
           </div>
-        </section>
+        </div>
 
-        <!-- Seccion 4: Referencias -->
-        <section class="informe-section">
+        <div class="informe-section">
           <h2>Referencias</h2>
           <ul class="referencias-list">
             <li>Silva, M. (2019). Aprendizaje por refuerzo: Introduccion al mundo del RL. <em>ResearchGate</em>. <a href="https://www.researchgate.net/publication/335112487_Introduccion_al_Aprendizaje_por_Refuerzo" target="_blank" class="ref-link">Ver articulo</a></li>
-            <li>Watkins, C. J. C. H., & Dayan, P. (1992). Q-Learning. <em>Machine Learning</em>, 8(3-4), 279-292.</li>
-            </ul>
-        </section>
+            <li>Bellman, R. (1957). A Markovian Decision Process. <em>Journal of Mathematics and Mechanics</em>, 6(5), 679-684.</li>
+          </ul>
+        </div>
 
       </div>
-    </div>
+    </section>
 
   </div>
 
-  <!-- Modulo principal -->
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

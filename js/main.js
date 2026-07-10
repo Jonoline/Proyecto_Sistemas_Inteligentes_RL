@@ -92,8 +92,8 @@ function speedToSlider(spd) {
   return Math.round(Math.sqrt((spd - 0.5) / 19.5) * 100);
 }
 
-/** Simulacion pausada (arranca pausada). */
-let paused = true;
+/** Simulacion pausada. */
+let paused = false;
 
 /** Agente pausado (simulación sigue corriendo sin decisiones RL). */
 let agentPaused = false;
@@ -468,52 +468,5 @@ viz.updateAgentPanel(
   agent.getPolicySummary()
 );
 
-// Iniciar loop (simulacion arranca pausada)
-speedLabel.textContent = '1x';
-btnPause.textContent = 'Continuar';
-btnPause.classList.add('active');
+// Iniciar loop
 requestAnimationFrame(mainLoop);
-
-// ---------------------------------------------------------------------------
-// Pestañas (al final para asegurar DOM listo)
-// ---------------------------------------------------------------------------
-
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    tab.classList.add('active');
-    const content = document.getElementById('tab-' + tab.dataset.tab);
-    if (content) content.classList.add('active');
-
-    if (tab.dataset.tab === 'simulacion') {
-      resizeHighwayCanvas();
-      resizeChartCanvas();
-    } else {
-      paused = true;
-      btnPause.textContent = 'Continuar';
-      btnPause.classList.add('active');
-    }
-  });
-});
-
-function resizeHighwayCanvas() {
-  const parent = highwayCanvas.parentElement;
-  if (!parent || !parent.clientWidth) return;
-  highwayCanvas.width  = parent.clientWidth - 20;
-  highwayCanvas.height = 260;
-  sim.canvasWidth  = highwayCanvas.width;
-  sim.canvasHeight = highwayCanvas.height;
-}
-
-function resizeChartCanvas() {
-  const parent = chartCanvas.parentElement;
-  if (!parent || !parent.clientWidth) return;
-  chartCanvas.width  = parent.clientWidth - 20;
-  chartCanvas.height = Math.max(120, parent.clientHeight - 40);
-}
-
-window.addEventListener('resize', () => {
-  resizeHighwayCanvas();
-  resizeChartCanvas();
-});
