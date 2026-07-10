@@ -46,6 +46,9 @@ body {
 .hero-content { max-width: 640px; }
 .hero-content h1 { font-size: 42px; font-weight: 800; color: #E2E8F0; line-height: 1.15; margin-bottom: 16px; }
 .hero-subtitle { font-size: 16px; color: #9CA3AF; line-height: 1.6; margin-bottom: 32px; }
+.hero-badges { display: flex; gap: 12px; justify-content: center; margin-bottom: 32px; flex-wrap: wrap; }
+.hero-badges span { padding: 6px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; font-size: 13px; color: #9CA3AF; font-weight: 600; }
+.hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .btn-hero {
   display: inline-block; padding: 14px 36px; border: 2px solid #10B981; border-radius: 10px;
   background: rgba(16,185,129,0.1); color: #10B981; font-size: 15px; font-weight: 700;
@@ -116,7 +119,7 @@ body {
   padding: 18px; font-family: 'Courier New', monospace; font-size: 15px;
   color: #E2E8F0; text-align: center; margin: 14px 0; overflow-x: auto;
 }
-.bellman-terms { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
+.bellman-terms { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px auto; }
 .term { display: flex; gap: 8px; font-size: 11px; padding: 7px 10px; background: rgba(255,255,255,0.02); border-radius: 6px; }
 .term strong { color: #10B981; min-width: 90px; font-family: monospace; }
 .term span { color: #9CA3AF; line-height: 1.5; }
@@ -269,11 +272,11 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: #
    RESULTADOS
    ========================================================================== */
 
-.informe-block { margin-bottom: 20px; }
+.informe-block { margin-bottom: 20px; text-align: center; }
 .informe-block h3 { font-size: 16px; color: #10B981; margin-bottom: 12px; }
-.informe-block p { font-size: 13px; color: #9CA3AF; line-height: 1.7; margin-bottom: 10px; }
+.informe-block p { text-align: left;  font-size: 13px; color: #9CA3AF; line-height: 1.7; margin-bottom: 10px; }
 .informe-block strong { color: #E2E8F0; }
-.informe-capture { background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.08); border-radius: 8px; display: inline-block; margin: 10px 0; line-height: 0; }
+.informe-capture { background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.08); border-radius: 8px; display: inline-block; margin: 10px auto; line-height: 0; }
 .informe-capture img { display: block; max-width: 700px; width: 100%; height: auto; border-radius: 6px; }
 
 .conclusion-list { display: flex; flex-direction: column; gap: 10px; }

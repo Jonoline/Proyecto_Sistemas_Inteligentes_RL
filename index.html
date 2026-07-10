@@ -29,7 +29,15 @@
     <div class="hero-content">
       <h1>Simulador de Trafico Inteligente</h1>
       <p class="hero-subtitle">Aprendizaje por Refuerzo aplicado a la deteccion de accidentes en autopistas</p>
-      <a href="#simulacion" class="btn-hero">Ir a la Simulacion</a>
+      <div class="hero-badges">
+        <span>4 carriles</span>
+        <span>3 acciones</span>
+      </div>
+      <div class="hero-buttons">
+        <a href="#teoria" class="btn-hero">Teoria RL</a>
+        <a href="#simulacion" class="btn-hero">Simulacion</a>
+        <a href="#resultados" class="btn-hero">Resultados</a>
+      </div>
     </div>
   </section>
 
@@ -107,7 +115,7 @@
           </div>
           <div class="glosario-card">
             <div class="card-front"><span class="card-title">Tabla Q</span>Estructura que almacena el valor estimado de cada accion en cada estado. Se actualiza iterativamente con la ecuacion de Bellman.</div>
-            <div class="card-back"><span class="card-title">En el simulador</span>~120 estados posibles. Visible como mapa de calor en el panel de control.</div>
+            <div class="card-back"><span class="card-title">En el simulador</span>~28 estados posibles. Visible como mapa de calor en el panel de control.</div>
           </div>
       </div>
   </div>
@@ -242,7 +250,7 @@
 
       <div class="informe-block glass-panel">
         <h3>Evolucion de la Tabla Q</h3>
-        <p>El mapa de calor muestra el aprendizaje: celdas grises al inicio, verdes al converger. La tabla de accidentes por carril confirma que la politica es consistente.</p>
+        <p>El mapa de calor muestra el aprendizaje: celdas grises al inicio, verdes al converger. Las celdas de velocidad cero aprenden a usar la grua (+20) y el desvio (+5) segun la disponibilidad.</p>
         <div class="informe-capture">
           <img src="capturas/qtable.png" alt="Mapa de calor Q-Table">
         </div>
@@ -263,9 +271,7 @@
           <div class="lim-row lim-header"><div>Limitacion</div><div>Descripcion</div><div>Solucion futura</div></div>
           <div class="lim-row"><div>Maldicion de la dimensionalidad</div><div>El numero de estados crece exponencialmente con cada nueva variable.</div><div><strong>Deep Q-Networks (DQN)</strong></div></div>
           <div class="lim-row"><div>Espacios continuos</div><div>Muchos problemas tienen estados y acciones continuos.</div><div><strong>Policy Gradients, DDPG, SAC</strong></div></div>
-          <div class="lim-row"><div>Exploracion vs Explotacion</div><div>No existe una estrategia universal optima.</div><div><strong>UCB, Thompson Sampling</strong></div></div>
           <div class="lim-row"><div>Eficiencia de muestras</div><div>Q-Learning tabular requiere miles de episodios.</div><div><strong>Experience Replay</strong></div></div>
-          <div class="lim-row"><div>Suposicion de Markov</div><div>Muchos problemas requieren memoria del pasado.</div><div><strong>POMDPs, LSTM</strong></div></div>
           <div class="lim-row"><div>Falta de generalizacion</div><div>Una Tabla Q solo sirve para el problema exacto donde fue entrenada.</div><div><strong>Meta-Learning</strong></div></div>
         </div>
       </div>

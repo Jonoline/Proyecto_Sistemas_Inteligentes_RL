@@ -2,6 +2,8 @@
 
 Simulador interactivo de una autopista de 4 carriles donde un agente de **Q-Learning** aprende a distinguir entre congestion normal y accidentes (vehiculo detenido en un carril), tomando acciones correctivas para evitar el colapso del trafico.
 
+**Ver en vivo:** [jonoline.github.io/Proyecto_Sistemas_Inteligentes_RL](https://jonoline.github.io/Proyecto_Sistemas_Inteligentes_RL/)
+
 ## Requisitos
 
 - Navegador web moderno con soporte para **ES6 Modules** y **Canvas 2D**.
